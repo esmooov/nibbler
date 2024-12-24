@@ -1,18 +1,14 @@
 import { isNull } from "lodash"
 
 export type Result = {
-  operation: "ADD" | "SUB",
+  operation: "ADD",
   argument: number | null,
-  out: 1 | 0
+  out: 1 | 0,
 }
 
-export type Data = Result & {nibble: Nibble, n: number} 
+export type State = Result & {nibble: Nibble, n: number, loop: boolean} 
 
-export type State = {
-  history: Array<Omit<State, "history">>,
-  data: Data,
-  loop: boolean,
-}
+export type History = Array<State>
 
 export type Bit = 0 | 1
 export type Nibble = [Bit,Bit,Bit,Bit]
@@ -71,8 +67,8 @@ export const getFormattedDigit = (digit) => {
   }
 }
 
-export const displayTable = (history: State["history"]) => {
-  const formattedTable = history.map(({data}) => {
+export const displayTable = (history: History) => {
+  const formattedTable = history.map((data) => {
     return {...data, 
       1: data.nibble[0], 
       2: data.nibble[1], 
@@ -80,5 +76,5 @@ export const displayTable = (history: State["history"]) => {
       8: data.nibble[3],
     }
   })
-  console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument"])
+  console.table(formattedTable, ["1","2","4","8"," ","n", "out", "carry", "operation", "argument"])
 }

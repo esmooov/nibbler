@@ -1,5 +1,5 @@
-import { isEqual } from "lodash"
-import { Nibble, State, toInt, add, getFormattedDigit, digit, displayTable, Result, Data } from "./utils"
+import { isEqual, omit } from "lodash"
+import { Nibble, toInt, add, digit, displayTable, Result, State, History } from "./utils"
 
 
 
@@ -37,7 +37,7 @@ const testNibble = (nibble: Nibble): Result => {
 }
 
   
-const createAdderStateData = (nibble: Nibble): State["data"] => {
+const createAdderState = (nibble: Nibble): Omit<State, "loop"> => {
   const result = testNibble(nibble) 
   return {
     ...result,
@@ -46,7 +46,7 @@ const createAdderStateData = (nibble: Nibble): State["data"] => {
   }
 }
 
-const getNextNibble = (data: Data): Nibble => {
+const getNextNibble = (data: State): Nibble => {
   if (data.operation === "ADD") {
     return add(data.nibble,data.argument)
   }
@@ -54,32 +54,29 @@ const getNextNibble = (data: Data): Nibble => {
   throw `Invalid operation ${data.operation}`
 }
 
-const firstDatum = createAdderStateData([0,0,0,0]) 
-const initialAdderState: State = {
-  history: [{loop: false, data: firstDatum}],
-  data: firstDatum,
-  loop: false,
-}
+const initialHistory: History = [{...createAdderState([0,0,0,0]), loop: false}]
 
-const output = rows.reduce((m: State, i): State => {
-  const {history, data} = m
+const rawState = state => omit(state, "loop")
+
+const output = rows.reduce((currentHistory: History): History => {
+  const data = currentHistory.slice(-1)[0]
   const newNibble = getNextNibble(data)
-  const newData = createAdderStateData(newNibble)
-  const loop = history.some(h => isEqual(h.data, newData))
-  const newEntry = {data: newData, loop, i}
-  history.push(newEntry) 
+  const newState = createAdderState(newNibble)
+  const loop = currentHistory.some(state => rawState(state), newState)
+  currentHistory.push({...newState, loop}) 
 
-  return {history, ...newEntry}
-}, initialAdderState)
+  return currentHistory
+}, initialHistory)
 console.log("")
 console.log(`When taking the ${mode}`)
 console.log(`  if ON add ${addOn}`)
 console.log(`  if OFF add ${addOff} `)
-const firstLoopIdx = output.history.findIndex(o => o.loop) 
-const firstLoopState = output.history[firstLoopIdx]
-const firstMatchedIdx = output.history.findIndex(h => isEqual(h.data, firstLoopState.data))
-const preHistory = output.history.slice(0,firstMatchedIdx)
-const mainHistory = output.history.slice(firstMatchedIdx, firstLoopIdx)
+console.log(output)
+const firstLoopIdx = output.findIndex(o => o.loop) 
+const firstLoopState = output[firstLoopIdx]
+const firstMatchedIdx = output.findIndex(h => isEqual(rawState(h), rawState(firstLoopState)))
+const preHistory = output.slice(0,firstMatchedIdx)
+const mainHistory = output.slice(firstMatchedIdx, firstLoopIdx)
 if (preHistory.length) {
   displayTable(preHistory)
   console.log("--------------------------------------")
