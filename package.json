@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/lodash": "^4.17.13",
     "@types/node": "^22.10.2",
+    "dashargs": "^4.1.6",
     "lodash": "^4.17.21"
   }
 }

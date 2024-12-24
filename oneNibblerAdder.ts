@@ -1,15 +1,15 @@
 import { isEqual, omit } from "lodash"
+import { argv } from "dashargs"
 import { Nibble, toInt, add, displayTable, Result, State, History, Bit, decodeArgument} from "./utils"
 
 
 
 const rows = Array.from(Array(32).keys())
 
-
-const args = process.argv.slice(2)
-const program = args[0]
-const aValue = args[1]
-const bValue = args[2]
+const args = argv()
+const program = args["program"] || args["p"]
+const aValue = args["on"]
+const bValue = args["off"]
 
 
 const testNibble = (nibble: Nibble): Result => {
