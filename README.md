@@ -3,9 +3,10 @@
 Access a bit of the current nibble with an asterisk. `OR[*1,*2]` means either the first or second bits is high.
 
 To check XOR first and second bits, adding 3 if TRUE, adding 2 if false
+`npx tsx oneNibblerAdder.ts -p "CHOICE XOR[*1,*2] +3 +2"`
 
+Cool stuff if mix add and subtract
 `npx tsx oneNibblerAdder.ts -p "CHOICE XOR[*1,*2] +3 -2"`
-
 
 To always SHIFT the NOR of the second and third bits
 `npx tsx oneNibblerAdder.ts -p "CONSTANT SHIFT[NOT[*2,*4]]"`

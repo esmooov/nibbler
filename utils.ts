@@ -1,4 +1,4 @@
-import { isNull, isNumber } from "lodash"
+import { isEqual, isNull, isNumber, omit } from "lodash"
 
 export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE"
 
@@ -9,6 +9,9 @@ export type Result = {
 }
 
 export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: Bit} 
+
+export const rawState = state => omit(state, "loop", "carry")
+export const statesAreEqual = (a: State, b: State) => isEqual(rawState(a), rawState(b))
 
 export type History = Array<State>
 
@@ -180,4 +183,19 @@ export const displayTable = (history: History) => {
     }
   })
   console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument", "carry"])
+}
+
+export const printProgram = (rawProgram: string, history: History) => {
+  console.log("")
+  console.log(`PROGRAM: ${rawProgram}`)
+  const firstLoopIdx = history.findIndex(o => o.loop) 
+  const firstLoopState = history[firstLoopIdx]
+  const firstMatchedIdx = history.findIndex(h => statesAreEqual(h, firstLoopState))
+  const preHistory = history.slice(0,firstMatchedIdx)
+  const mainHistory = history.slice(firstMatchedIdx, firstLoopIdx)
+  if (preHistory.length) {
+    displayTable(preHistory)
+    console.log("--------------------------------------")
+  }
+  displayTable(mainHistory)
 }
