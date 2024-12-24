@@ -1,12 +1,14 @@
 import { isEqual, omit } from "lodash"
-import { argv } from "dashargs"
+import yargs from "yargs"
+import {hideBin} from "yargs/helpers"
 import { Nibble, toInt, add, displayTable, Result, State, History, Bit, decodeArgument} from "./utils"
 
 
 
 const rows = Array.from(Array(32).keys())
 
-const args = argv()
+const args = yargs(hideBin(process.argv)).string("on").string("off").parse()
+
 const program = args["program"] || args["p"]
 const aValue = args["on"]
 const bValue = args["off"]
@@ -18,7 +20,7 @@ const testNibble = (nibble: Nibble): Result => {
   const {value: offValue, operation: offOperation} = decodeArgument(bValue, nibble) 
   const {value: programValue} = decodeArgument(program, nibble) 
   const isOn = programValue === 0 ? false : true
-  
+
   if (isOn) {
     return {
       out: 1,
@@ -46,13 +48,11 @@ const createAdderState = (nibble: Nibble): Omit<State, "loop"> => {
 }
 
 const getNextNibble = (data: State): Nibble => {
-  if (data.operation === "ADD") {
-    return add(data.nibble,data.argument)
-  } else if (data.operation === "SHIFT") {
+  if (data.operation === "SHIFT") {
     return [data.argument as Bit, data.nibble[0], data.nibble[1], data.nibble[2]]
   }
 
-  throw `Invalid operation ${data.operation}`
+  return add(data.nibble,data.argument)
 }
 
 const initialHistory: History = [{...createAdderState([0,0,0,0]), loop: false}]
