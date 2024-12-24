@@ -56,19 +56,45 @@ export const digit = (n: Nibble, d: string | number) => {
   throw `${d} is not a legal digit`
 }
 
-export const getFormattedDigit = (digit) => {
-  switch (digit) {
-    case 0:
-      return "1-bit" 
-    case 1:
-      return "2-bit" 
-    case 2:
-      return "4-bit" 
-    case 3:
-      return "8-bit" 
-    default:
-      break;
+export const parseProgram = (program: string): (nibble: Nibble) => Result => {
+  const match = program.match(/^(\w+) (.+?)$/)
+  if (!match) throw "Could not parse program"
+
+  const programName = match[1]
+  const programArguments = match[2].split(" ")
+
+  if (programName === "CONSTANT") {
+    return (nibble: Nibble) => {
+      const {value, operation} = decodeArgument(programArguments[0], nibble)
+      return {
+        out: 1,
+        operation: operation || "ADD",
+        argument: value
+      }
+    }
+  } else if (programName === "CHOICE") {
+    return (nibble: Nibble) => {
+      const foo = decodeArgument(match[2], nibble)
+      const {value: choice} = decodeArgument(programArguments[0], nibble) 
+      const {value: onValue, operation: onOperation} = decodeArgument(programArguments[1], nibble) 
+      const {value: offValue, operation: offOperation} = decodeArgument(programArguments[2], nibble) 
+      if (choice === 0) {
+        return {
+          out: 0,
+          operation: offOperation || "ADD",
+          argument: offValue
+        }
+      } else {
+        return {
+          out: 1,
+          operation: onOperation || "ADD",
+          argument: onValue
+        }
+      }
+    }
   }
+  
+  throw "Could not parse program"
 }
 
 export const decodeValue = (argument: string | number, nibble: Nibble): number => {

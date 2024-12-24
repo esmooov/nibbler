@@ -1,7 +1,7 @@
 import { isEqual, omit } from "lodash"
 import yargs from "yargs"
 import {hideBin} from "yargs/helpers"
-import { Nibble, toInt, add, displayTable, Result, State, History, Bit, decodeArgument} from "./utils"
+import { Nibble, toInt, add, displayTable, Result, State, History, Bit, decodeArgument, parseProgram} from "./utils"
 
 
 
@@ -9,37 +9,12 @@ const rows = Array.from(Array(32).keys())
 
 const args = yargs(hideBin(process.argv)).string("on").string("off").parse()
 
-const program = args["program"] || args["p"]
-const aValue = args["on"]
-const bValue = args["off"]
+const rawProgram = args["program"] || args["p"]
 
+const program = parseProgram(rawProgram)
 
-const testNibble = (nibble: Nibble): Result => {
-
-  const {value: onValue, operation: onOperation} = decodeArgument(aValue, nibble) 
-  const {value: offValue, operation: offOperation} = decodeArgument(bValue, nibble) 
-  const {value: programValue} = decodeArgument(program, nibble) 
-  const isOn = programValue === 0 ? false : true
-
-  if (isOn) {
-    return {
-      out: 1,
-      operation: onOperation || "ADD",
-      argument: onValue
-    }
-  }
-
-  return {
-    out: 0,
-    operation: offOperation || "ADD",
-    argument: offValue
-  }
-
-}
-
-  
 const createAdderState = (nibble: Nibble): Omit<State, "loop"> => {
-  const result = testNibble(nibble) 
+  const result = program(nibble) 
   return {
     ...result,
     nibble,
@@ -71,9 +46,7 @@ const output = rows.reduce((currentHistory: History): History => {
   return currentHistory
 }, initialHistory)
 console.log("")
-console.log(`When taking the ${program}`)
-console.log(`  if ON ${aValue}`)
-console.log(`  if OFF ${bValue}`)
+console.log(`PROGRAM: ${rawProgram}`)
 const firstLoopIdx = output.findIndex(o => o.loop) 
 const firstLoopState = output[firstLoopIdx]
 const firstMatchedIdx = output.findIndex(h => statesAreEqual(h, firstLoopState))
