@@ -1,6 +1,6 @@
-import { isNull } from "lodash"
+import { isNull, isNumber } from "lodash"
 
-export type Operation = "ADD" | "SHIFT"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT"
 
 export type Result = {
   operation: Operation,
@@ -13,6 +13,8 @@ export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: 
 export type History = Array<State>
 
 export type Bit = 0 | 1
+export const toBit = (b: boolean) => b ? 1 : 0
+
 export type Nibble = [Bit,Bit,Bit,Bit]
 
 export const toInt = (n: Nibble | number): number => {
@@ -69,42 +71,59 @@ export const getFormattedDigit = (digit) => {
   }
 }
 
-const parseArgument = (argument: string, nibble: Nibble): number => {
-  const match = argument.match(/(\w+)?\[((\d,?)+)\]/)
-  if (!match) return Number (arg)
+export const decodeValue = (argument: string, nibble: Nibble): number => {
+  let p: any
+
+  if (p = argument.match(/\+(\d+)/)) return Number(p[1])
+  if (p = argument.match(/\-(\d+)/)) return Number(p[0])
+  if (p = argument.match(/^\d$/)) return digit(nibble,p[0])
+
+  // By default let's return a true bit
+  return 1
+}
+
+
+export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation | null, value: number} => {
+  if (!argument) return {operation: null, value: 0}
+  const fnMatch = /^(\w+)?\[(.+?)\]$/ 
+  const match = argument.match(fnMatch)
+
+  // Without a function, treat argument as plain value
+  if (!match) return {operation: null, value: decodeValue(argument, nibble)}
 
   const fn = match[1]
-  const data = match[2].split(",") 
+  const data = match[2]
 
-  
-}
-
-export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation, argument: number} => {
-  if (argument.match("SHIFT")) {
-    const parsedArgument = argument.match(/SHIFT(\[(\d)\])?/)
-    const shiftDigit = parsedArgument ? parsedArgument[2] : null
-
-    // BY DEFAULT SHIFT TAKES THE LAST BIT
-    const shiftData = shiftDigit ? digit(nibble, shiftDigit) : digit(nibble, 8) 
+  if (data.match(fnMatch)) {
+    const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble)
+    // IMAGE SHIFT[XOR[2,4]]
+    // HERE WE MIGHT HAVE operation = SHIFT, innerOperaton = XOR, innerValue = 1
     return {
-      operation: "SHIFT",
-      argument: shiftData
+      operation: fn as Operation,
+      value: innerValue
     }
-  }
-
-  return {
-    operation: "ADD",
-    argument: Number(argument)
-  }
-}
-
-export const processSimpleLogic = (nibble: Nibble, isOn: boolean, addOn: string, addOff: string): Result => {
-  const rawArgument = isOn ? addOn : addOff
-  const {operation, argument} = decodeArgument(rawArgument, nibble)
-  return {
-    out: isOn ? 1 : 0,
-    operation,
-    argument
+  } else {
+    const values = data.split(",")
+    if (fn === "AND") {
+      const isOn = values.every(d => digit(nibble,d) === 1) 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "OR") {
+      const isOn = values.some(d => digit(nibble,d) === 1)
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "XOR") {
+      const onBits = values.filter(d => digit(nibble,d) === 1)
+      const isOn = (onBits.length & 1) === 1
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "SHIFT") {
+      // an empty SHIFT will copy the last bit from the nibble
+      const value = data ? decodeValue(data[0], nibble): digit(nibble, 8)
+      return {operation: "SHIFT", value}
+    } else if (fn === "NOT") {
+      const isOn = values.every(d => digit(nibble,d) === 0) 
+      return {operation: fn, value: toBit(isOn)}
+    } else {
+      return {operation: null, value: decodeValue(data, nibble)}
+    }
   }
 }
 

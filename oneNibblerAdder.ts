@@ -1,5 +1,5 @@
 import { isEqual, omit } from "lodash"
-import { Nibble, toInt, add, digit, displayTable, Result, State, History, processSimpleLogic, Bit } from "./utils"
+import { Nibble, toInt, add, displayTable, Result, State, History, Bit, decodeArgument} from "./utils"
 
 
 
@@ -7,30 +7,32 @@ const rows = Array.from(Array(32).keys())
 
 
 const args = process.argv.slice(2)
-const mode = args[0]
-const addOn = args[1]
-const addOff = args[2]
-const addSpecial = args[3]
+const program = args[0]
+const aValue = args[1]
+const bValue = args[2]
 
 
 const testNibble = (nibble: Nibble): Result => {
-  const match = mode.match(/(\w+)\[((\d,?)+)\]/)
-  if (!match) return {out: 1, operation: "ADD", argument: Number(addOn)}
-  const method = match[1]
-  const data = match[2].split(",")
-  if (method === "AND") {
-    const isOn = data.every(d => digit(nibble,d) === 1) 
-    return processSimpleLogic(nibble, isOn, addOn, addOff)
-  } else if (method === "OR") {
-    const isOn = data.some(d => digit(nibble,d) === 1)
-    return processSimpleLogic(nibble, isOn, addOn, addOff)
-  } else if (method === "XOR") {
-    const onBits = data.filter(d => digit(nibble,d) === 1)
-    const isOn = (onBits.length & 1) === 1
-    return processSimpleLogic(nibble, isOn, addOn, addOff)
+
+  const {value: onValue, operation: onOperation} = decodeArgument(aValue, nibble) 
+  const {value: offValue, operation: offOperation} = decodeArgument(bValue, nibble) 
+  const {value: programValue} = decodeArgument(program, nibble) 
+  const isOn = programValue === 0 ? false : true
+  
+  if (isOn) {
+    return {
+      out: 1,
+      operation: onOperation || "ADD",
+      argument: onValue
+    }
   }
 
-  return {out: 1, operation: "ADD", argument: Number(addOn)}
+  return {
+    out: 0,
+    operation: offOperation || "ADD",
+    argument: offValue
+  }
+
 }
 
   
@@ -69,9 +71,9 @@ const output = rows.reduce((currentHistory: History): History => {
   return currentHistory
 }, initialHistory)
 console.log("")
-console.log(`When taking the ${mode}`)
-console.log(`  if ON add ${addOn}`)
-console.log(`  if OFF add ${addOff} `)
+console.log(`When taking the ${program}`)
+console.log(`  if ON ${aValue}`)
+console.log(`  if OFF ${bValue}`)
 const firstLoopIdx = output.findIndex(o => o.loop) 
 const firstLoopState = output[firstLoopIdx]
 const firstMatchedIdx = output.findIndex(h => statesAreEqual(h, firstLoopState))
