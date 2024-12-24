@@ -56,13 +56,14 @@ const getNextNibble = (data: State): Nibble => {
 
 const initialHistory: History = [{...createAdderState([0,0,0,0]), loop: false}]
 
-const rawState = state => omit(state, "loop")
+const rawState = state => omit(state, "loop", "carry")
 const statesAreEqual = (a: State, b: State) => isEqual(rawState(a), rawState(b))
 
 const output = rows.reduce((currentHistory: History): History => {
   const data = currentHistory.slice(-1)[0]
   const newNibble = getNextNibble(data)
   const newState = createAdderState(newNibble)
+  data.carry = newState.n < data.n ? 1 : 0
   const loop = currentHistory.some(state => isEqual(rawState(state), newState))
   currentHistory.push({...newState, loop}) 
 

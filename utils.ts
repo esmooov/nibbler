@@ -6,7 +6,7 @@ export type Result = {
   out: 1 | 0,
 }
 
-export type State = Result & {nibble: Nibble, n: number, loop: boolean} 
+export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: 1 | 0} 
 
 export type History = Array<State>
 
