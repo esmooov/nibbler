@@ -1,8 +1,16 @@
-import { error } from "console"
+import { isNull } from "lodash"
+
+export type Result = {
+  operation: "ADD" | "SUB",
+  argument: number | null,
+  out: 1 | 0
+}
+
+export type Data = Result & {nibble: Nibble, n: number} 
 
 export type State = {
   history: Array<Omit<State, "history">>,
-  data: Record<string, any>,
+  data: Data,
   loop: boolean,
 }
 
@@ -20,9 +28,9 @@ export const toNibble = (n: number): Nibble => {
   return Number(m).toString(2).padStart(4,"0").split("").reverse().map(c => Number(c)) as Nibble
 }
 
-export const add = (a: Nibble | number, b: Nibble | number): Nibble => {
-  const aInt = toInt(a);
-  const bInt = toInt(b);
+export const add = (a: Nibble | number | null, b: Nibble | number | null): Nibble => {
+  const aInt = isNull(a) ? 0 : toInt(a);
+  const bInt = isNull(b) ? 0 : toInt(b);
   return toNibble(aInt + bInt);
 }
 
@@ -66,11 +74,11 @@ export const getFormattedDigit = (digit) => {
 export const displayTable = (history: State["history"]) => {
   const formattedTable = history.map(({data}) => {
     return {...data, 
-      1: data.nibblerNumber[0], 
-      2: data.nibblerNumber[1], 
-      4: data.nibblerNumber[2],
-      8: data.nibblerNumber[3],
+      1: data.nibble[0], 
+      2: data.nibble[1], 
+      4: data.nibble[2],
+      8: data.nibble[3],
     }
   })
-  console.table(formattedTable, ["1","2","4","8"," ","d", "n", "addAmount"])
+  console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument"])
 }
