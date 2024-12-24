@@ -57,12 +57,13 @@ const getNextNibble = (data: State): Nibble => {
 const initialHistory: History = [{...createAdderState([0,0,0,0]), loop: false}]
 
 const rawState = state => omit(state, "loop")
+const statesAreEqual = (a: State, b: State) => isEqual(rawState(a), rawState(b))
 
 const output = rows.reduce((currentHistory: History): History => {
   const data = currentHistory.slice(-1)[0]
   const newNibble = getNextNibble(data)
   const newState = createAdderState(newNibble)
-  const loop = currentHistory.some(state => rawState(state), newState)
+  const loop = currentHistory.some(state => isEqual(rawState(state), newState))
   currentHistory.push({...newState, loop}) 
 
   return currentHistory
@@ -71,10 +72,9 @@ console.log("")
 console.log(`When taking the ${mode}`)
 console.log(`  if ON add ${addOn}`)
 console.log(`  if OFF add ${addOff} `)
-console.log(output)
 const firstLoopIdx = output.findIndex(o => o.loop) 
 const firstLoopState = output[firstLoopIdx]
-const firstMatchedIdx = output.findIndex(h => isEqual(rawState(h), rawState(firstLoopState)))
+const firstMatchedIdx = output.findIndex(h => statesAreEqual(h, firstLoopState))
 const preHistory = output.slice(0,firstMatchedIdx)
 const mainHistory = output.slice(firstMatchedIdx, firstLoopIdx)
 if (preHistory.length) {
