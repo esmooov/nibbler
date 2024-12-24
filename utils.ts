@@ -1,12 +1,14 @@
 import { isNull } from "lodash"
 
+export type Operation = "ADD" | "SHIFT"
+
 export type Result = {
-  operation: "ADD",
-  argument: number | null,
-  out: 1 | 0,
+  operation: Operation,
+  argument: number,
+  out: Bit,
 }
 
-export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: 1 | 0} 
+export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: Bit} 
 
 export type History = Array<State>
 
@@ -64,6 +66,45 @@ export const getFormattedDigit = (digit) => {
       return "8-bit" 
     default:
       break;
+  }
+}
+
+const parseArgument = (argument: string, nibble: Nibble): number => {
+  const match = argument.match(/(\w+)?\[((\d,?)+)\]/)
+  if (!match) return Number (arg)
+
+  const fn = match[1]
+  const data = match[2].split(",") 
+
+  
+}
+
+export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation, argument: number} => {
+  if (argument.match("SHIFT")) {
+    const parsedArgument = argument.match(/SHIFT(\[(\d)\])?/)
+    const shiftDigit = parsedArgument ? parsedArgument[2] : null
+
+    // BY DEFAULT SHIFT TAKES THE LAST BIT
+    const shiftData = shiftDigit ? digit(nibble, shiftDigit) : digit(nibble, 8) 
+    return {
+      operation: "SHIFT",
+      argument: shiftData
+    }
+  }
+
+  return {
+    operation: "ADD",
+    argument: Number(argument)
+  }
+}
+
+export const processSimpleLogic = (nibble: Nibble, isOn: boolean, addOn: string, addOff: string): Result => {
+  const rawArgument = isOn ? addOn : addOff
+  const {operation, argument} = decodeArgument(rawArgument, nibble)
+  return {
+    out: isOn ? 1 : 0,
+    operation,
+    argument
   }
 }
 

@@ -1,5 +1,5 @@
 import { isEqual, omit } from "lodash"
-import { Nibble, toInt, add, digit, displayTable, Result, State, History } from "./utils"
+import { Nibble, toInt, add, digit, displayTable, Result, State, History, processSimpleLogic, Bit } from "./utils"
 
 
 
@@ -8,32 +8,29 @@ const rows = Array.from(Array(32).keys())
 
 const args = process.argv.slice(2)
 const mode = args[0]
-const addOn = Number(args[1])
-const addOff = Number(args[2])
-const addSpecial = Number(args[3])
+const addOn = args[1]
+const addOff = args[2]
+const addSpecial = args[3]
+
 
 const testNibble = (nibble: Nibble): Result => {
   const match = mode.match(/(\w+)\[((\d,?)+)\]/)
-  if (!match) return {out: 1, operation: "ADD", argument: addOn}
+  if (!match) return {out: 1, operation: "ADD", argument: Number(addOn)}
   const method = match[1]
   const data = match[2].split(",")
   if (method === "AND") {
     const isOn = data.every(d => digit(nibble,d) === 1) 
-    return {
-      out: isOn ? 1 : 0, 
-      operation: "ADD", 
-      argument: isOn ? addOn : addOff
-    }
+    return processSimpleLogic(nibble, isOn, addOn, addOff)
   } else if (method === "OR") {
     const isOn = data.some(d => digit(nibble,d) === 1)
-    return {
-      out: isOn ? 1 : 0, 
-      operation: "ADD", 
-      argument: isOn ? addOn : addOff
-    }
+    return processSimpleLogic(nibble, isOn, addOn, addOff)
+  } else if (method === "XOR") {
+    const onBits = data.filter(d => digit(nibble,d) === 1)
+    const isOn = (onBits.length & 1) === 1
+    return processSimpleLogic(nibble, isOn, addOn, addOff)
   }
 
-  return {out: 1, operation: "ADD", argument: addOn}
+  return {out: 1, operation: "ADD", argument: Number(addOn)}
 }
 
   
@@ -49,6 +46,8 @@ const createAdderState = (nibble: Nibble): Omit<State, "loop"> => {
 const getNextNibble = (data: State): Nibble => {
   if (data.operation === "ADD") {
     return add(data.nibble,data.argument)
+  } else if (data.operation === "SHIFT") {
+    return [data.argument as Bit, data.nibble[0], data.nibble[1], data.nibble[2]]
   }
 
   throw `Invalid operation ${data.operation}`
