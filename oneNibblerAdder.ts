@@ -1,5 +1,5 @@
 import { isEqual } from "lodash"
-import { Nibble, State, toInt, add, getFormattedDigit, digit } from "./utils"
+import { Nibble, State, toInt, add, getFormattedDigit, digit, formatTable, displayTable } from "./utils"
 
 
 
@@ -26,39 +26,43 @@ const getEvalFn = () => {
 const evalFn = getEvalFn()
 
 const createAdderStateData = (nibble: Nibble): State["data"] => {
+  const isOn = evalFn?.(nibble) 
   return {
     nibblerNumber: nibble,
-    addAmount: evalFn?.(nibble) ? addOn : addOff,
-    n: toInt(nibble)
+    addAmount: isOn ? addOn : addOff,
+    n: toInt(nibble),
+    d: isOn ? 1 : 0
   }
 }
 
-const initialAdderState = {
-  history: [{loop: false, data: createAdderStateData([0,0,0,0])}],
-  data: createAdderStateData([0,0,0,0]),
-  loop: false
+const firstDatum = createAdderStateData([0,0,0,0]) 
+const initialAdderState: State = {
+  history: [{loop: false, data: firstDatum}],
+  data: firstDatum,
+  loop: false,
 }
 
-const output = rows.reduce((m: State) => {
+const output = rows.reduce((m: State, i): State => {
   const {history, data} = m
   const newNibble = add(data.n, data.addAmount)
   const newData = createAdderStateData(newNibble)
   const loop = history.some(h => isEqual(h.data, newData))
-  const newEntry = {data: newData, loop}
+  const newEntry = {data: newData, loop, i}
   history.push(newEntry) 
 
   return {history, ...newEntry}
 }, initialAdderState)
-
 console.log("")
-console.log(`When taking the ${mode}, if ON add ${addOn} if OFF add ${addOff} `)
+console.log(`When taking the ${mode}`)
+console.log(`  if ON add ${addOn}`)
+console.log(`  if OFF add ${addOff} `)
 const firstLoopIdx = output.history.findIndex(o => o.loop) 
 const firstLoopState = output.history[firstLoopIdx]
 const firstMatchedIdx = output.history.findIndex(h => isEqual(h.data, firstLoopState.data))
-const preHistory = output.history.slice(0,firstMatchedIdx + 1)
+const preHistory = output.history.slice(0,firstMatchedIdx)
 const mainHistory = output.history.slice(firstMatchedIdx, firstLoopIdx)
 if (preHistory.length) {
-  preHistory.map(o => console.log(o.data))
+  displayTable(preHistory)
   console.log("--------------------------------------")
 }
-mainHistory.map(o => console.log(o.data))
+displayTable(mainHistory)

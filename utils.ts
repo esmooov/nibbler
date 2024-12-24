@@ -3,7 +3,7 @@ import { error } from "console"
 export type State = {
   history: Array<Omit<State, "history">>,
   data: Record<string, any>,
-  loop: boolean
+  loop: boolean,
 }
 
 export type Bit = 0 | 1
@@ -61,4 +61,16 @@ export const getFormattedDigit = (digit) => {
     default:
       break;
   }
+}
+
+export const displayTable = (history: State["history"]) => {
+  const formattedTable = history.map(({data}) => {
+    return {...data, 
+      1: data.nibblerNumber[0], 
+      2: data.nibblerNumber[1], 
+      4: data.nibblerNumber[2],
+      8: data.nibblerNumber[3],
+    }
+  })
+  console.table(formattedTable, ["1","2","4","8"," ","d", "n", "addAmount"])
 }
