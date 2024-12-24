@@ -76,5 +76,5 @@ export const displayTable = (history: History) => {
       8: data.nibble[3],
     }
   })
-  console.table(formattedTable, ["1","2","4","8"," ","n", "out", "carry", "operation", "argument"])
+  console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument", "carry"])
 }
