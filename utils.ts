@@ -53,7 +53,7 @@ export const digit = (n: Nibble, d: string | number) => {
     case 8:
       return n[3]
   }
-  throw `${d} is not legal digit`
+  throw `${d} is not a legal digit`
 }
 
 export const getFormattedDigit = (digit) => {
@@ -71,20 +71,21 @@ export const getFormattedDigit = (digit) => {
   }
 }
 
-export const decodeValue = (argument: string, nibble: Nibble): number => {
-  let p: any
+export const decodeValue = (argument: string | number, nibble: Nibble): number => {
+  if (typeof(argument) !== "string") return argument
 
+  let p: any
   if (p = argument.match(/\+(\d+)/)) return Number(p[1])
   if (p = argument.match(/\-(\d+)/)) return Number(p[0])
-  if (p = argument.match(/^\d$/)) return digit(nibble,p[0])
-
+  if (p = argument.match(/^\*(\d)$/)) return digit(nibble,p[1])
+  
   // By default let's return a true bit
   return 1
 }
 
 
 export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation | null, value: number} => {
-  if (!argument) return {operation: null, value: 0}
+  if (typeof(argument) !== "string") return {operation: null, value: argument || 0}
   const fnMatch = /^(\w+)?\[(.+?)?\]$/ 
   const match = argument.match(fnMatch)
 
@@ -103,15 +104,15 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       value: innerValue
     }
   } else {
-    const values = data?.split(",")
+    const values = data?.split(",").map(d => decodeArgument(d, nibble).value)
     if (fn === "AND") {
-      const isOn = values.every(d => digit(nibble,d) === 1) 
+      const isOn = values.every(d => decodeValue(d, nibble) === 1) 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "OR") {
-      const isOn = values.some(d => digit(nibble,d) === 1)
+      const isOn = values.some(d => decodeValue(d, nibble) === 1)
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "XOR") {
-      const onBits = values.filter(d => digit(nibble,d) === 1)
+      const onBits = values.filter(d => decodeValue(d, nibble) === 1)
       const isOn = (onBits.length & 1) === 1
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "GT") {
@@ -135,7 +136,7 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       const value = data ? decodeValue(data[0], nibble): digit(nibble, 8)
       return {operation: "SHIFT", value}
     } else if (fn === "NOT") {
-      const isOn = values.every(d => digit(nibble,d) === 0) 
+      const isOn = values.every(d => decodeValue(d, nibble) === 0) 
       return {operation: fn, value: toBit(isOn)}
     } else {
       return {operation: null, value: decodeValue(data, nibble)}

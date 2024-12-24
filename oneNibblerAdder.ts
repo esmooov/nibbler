@@ -20,7 +20,6 @@ const testNibble = (nibble: Nibble): Result => {
   const {value: offValue, operation: offOperation} = decodeArgument(bValue, nibble) 
   const {value: programValue} = decodeArgument(program, nibble) 
   const isOn = programValue === 0 ? false : true
-  console.log("fff", isOn, nibble, aValue)
 
   if (isOn) {
     return {
