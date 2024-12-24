@@ -1,6 +1,6 @@
 import { isNull, isNumber } from "lodash"
 
-export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE"
 
 export type Result = {
   operation: Operation,
@@ -85,7 +85,7 @@ export const decodeValue = (argument: string, nibble: Nibble): number => {
 
 export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation | null, value: number} => {
   if (!argument) return {operation: null, value: 0}
-  const fnMatch = /^(\w+)?\[(.+?)\]$/ 
+  const fnMatch = /^(\w+)?\[(.+?)?\]$/ 
   const match = argument.match(fnMatch)
 
   // Without a function, treat argument as plain value
@@ -94,7 +94,7 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
   const fn = match[1]
   const data = match[2]
 
-  if (data.match(fnMatch)) {
+  if (data?.match(fnMatch)) {
     const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble)
     // IMAGE SHIFT[XOR[2,4]]
     // HERE WE MIGHT HAVE operation = SHIFT, innerOperaton = XOR, innerValue = 1
@@ -103,7 +103,7 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       value: innerValue
     }
   } else {
-    const values = data.split(",")
+    const values = data?.split(",")
     if (fn === "AND") {
       const isOn = values.every(d => digit(nibble,d) === 1) 
       return {operation: fn, value: toBit(isOn)}
@@ -113,6 +113,22 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
     } else if (fn === "XOR") {
       const onBits = values.filter(d => digit(nibble,d) === 1)
       const isOn = (onBits.length & 1) === 1
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "GT") {
+      const comparator = decodeValue(values[0], nibble)
+      const isOn = toInt(nibble) > comparator 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "GTE") {
+      const comparator = decodeValue(values[0], nibble)
+      const isOn = toInt(nibble) >= comparator 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "LT") {
+      const comparator = decodeValue(values[0], nibble)
+      const isOn = toInt(nibble) < comparator 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "LTE") {
+      const comparator = decodeValue(values[0], nibble)
+      const isOn = toInt(nibble) <= comparator 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "SHIFT") {
       // an empty SHIFT will copy the last bit from the nibble

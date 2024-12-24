@@ -15,4 +15,5 @@ Weird stuff like if NOR second or third bits SHIFT NOR second and fourth bit, ot
 To subtract use -
 `npx tsx oneNibblerAdder.ts -p ALWAYS --on=-7`
 
-
+Fun with SHIFT
+`npx tsx oneNibblerAdder.ts -p "GT[+8]" --on="SHIFT[]" --off="+1"`
