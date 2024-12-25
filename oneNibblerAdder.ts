@@ -3,6 +3,7 @@ import {hideBin} from "yargs/helpers"
 import { printProgram} from "./utils"
 import { runSingleNibbler } from "./singleNibble"
 import { analyze } from "./analyze"
+import { omit } from "lodash"
 
 
 const args = yargs(hideBin(process.argv)).string("on").string("off").parse()
@@ -10,9 +11,13 @@ const args = yargs(hideBin(process.argv)).string("on").string("off").parse()
 const rawProgram = args["program"] || args["p"]
 
 const history = runSingleNibbler(rawProgram)
+const test = args["test"] ? (queue) => !!queue.join("").match(args["test"]) : () => true
 
-printProgram(rawProgram, history)
+const analysis = analyze(history, test)
 
-const analysis = analyze(history, (queue) => !!queue.join("").match(/101011010101001/))
+printProgram(analysis, rawProgram)
 
-console.log(analysis)
+if (args["test"]) {
+  const tests = omit(analysis, "preHistory", "mainHistory")
+  console.log(tests)
+}

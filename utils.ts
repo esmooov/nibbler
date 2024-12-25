@@ -1,7 +1,7 @@
 import { isEqual, isNull, isNumber, omit } from "lodash"
 import { Analysis } from "./analyze"
 
-export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE" | "EVEN" | "ODD"
 
 export type Result = {
   operation: Operation,
@@ -165,6 +165,14 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       // an empty SHIFT will copy the last bit from the nibble
       const value = data ? decodeValue(data[0], nibble): digit(nibble, 8)
       return {operation: "SHIFT", value}
+    } else if (fn === "EVEN") {
+      // This is the same as NOT[*1] but nicer to read
+      const isOn = (toInt(nibble) & 1) === 0
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "ODD") {
+      // This is the same as OR[*1] but nicer to read
+      const isOn = (toInt(nibble) & 1) === 1
+      return {operation: fn, value: toBit(isOn)}
     } else if (fn === "NOT") {
       const isOn = values.every(d => decodeValue(d, nibble) === 0) 
       return {operation: fn, value: toBit(isOn)}
