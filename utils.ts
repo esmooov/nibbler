@@ -1,7 +1,7 @@
 import { isEqual, isNull, isNumber, omit } from "lodash"
 import { Analysis } from "./analyze"
 
-export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE" | "EVEN" | "ODD"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE" | "EVEN" | "ODD" | "BETWEEN" | "OUTSIDE"
 
 export type Result = {
   operation: Operation,
@@ -105,7 +105,7 @@ export const decodeValue = (argument: string | number, nibble: Nibble): number =
   if (typeof(argument) !== "string") return argument
 
   let p: any
-  if (p = argument.match(/\+(\d+)/)) return Number(p[1])
+  if (p = argument.match(/\+?(\d+)/)) return Number(p[1])
   if (p = argument.match(/\-(\d+)/)) return Number(p[0])
   if (p = argument.match(/^\*(\d)$/)) return digit(nibble,p[1])
   
@@ -160,6 +160,16 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
     } else if (fn === "LTE") {
       const comparator = decodeValue(values[0], nibble)
       const isOn = toInt(nibble) <= comparator 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "BETWEEN") {
+      const low = decodeValue(values[0], nibble)
+      const high = decodeValue(values[1], nibble)
+      const isOn = toInt(nibble) > low && toInt(nibble) < high
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "OUTSIDE") {
+      const low = decodeValue(values[0], nibble)
+      const high = decodeValue(values[1], nibble)
+      const isOn = toInt(nibble) < low && toInt(nibble) > high
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "SHIFT") {
       // an empty SHIFT will copy the last bit from the nibble

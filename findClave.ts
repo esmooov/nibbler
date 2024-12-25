@@ -37,6 +37,21 @@ const execute = (program: string) => {
 //   }
 // }
 
+for (let a = -15; a < 16; a++) {
+  for (let b = -15; b < 16; b++) {
+    for (let low = 0; low < 14; low++) {
+      for (let high = low + 1; high < 17; high ++) {
+        bits.forEach(ba => {
+          bits.forEach(bb => {
+            const program = `CHOICE OUTSIDE[${low},${high}] ${a} ${b}`
+            execute(program)
+          })
+        })
+      }
+    }
+  }
+}
+
 // for (let a = -15; a < 16; a++) {
 //   for (let b = -15; b < 16; b++) {
 //     const cleanA = a < 0 ? a : `+${a}`
@@ -48,14 +63,14 @@ const execute = (program: string) => {
 //   }
 // }
 
-for (let a = -15; a < 16; a++) {
-  for (let b = -15; b < 16; b++) {
-    const cleanA = a < 0 ? a : `+${a}`
-    const cleanB = b < 0 ? b : `+${b}`
-      const program = `CHOICE EVEN[] ${cleanA} ${cleanB}`
-      execute(program)
-  }
-}
+// for (let a = -15; a < 16; a++) {
+//   for (let b = -15; b < 16; b++) {
+//     const cleanA = a < 0 ? a : `+${a}`
+//     const cleanB = b < 0 ? b : `+${b}`
+//       const program = `CHOICE EVEN[] ${cleanA} ${cleanB}`
+//       execute(program)
+//   }
+// }
 
 // bits.forEach(ba => {
 //   bits.forEach(bb => {
