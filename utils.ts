@@ -9,6 +9,12 @@ export type Result = {
   out: Bit,
 }
 
+export const defaultResult: Result = {
+  operation: "ADD",
+  argument: 0,
+  out: 0
+}
+
 export type State = Result & {nibble: Nibble, n: number, loop: boolean, carry?: Bit} 
 
 export const rawState = state => omit(state, "loop", "carry")
@@ -60,7 +66,8 @@ export const digit = (n: Nibble, d: string | number) => {
   throw `${d} is not a legal digit`
 }
 
-export const parseProgram = (program: string): (nibble: Nibble) => Result => {
+export const parseProgram = (program: string): ((nibble: Nibble, otherNibble?: Nibble) => Result) | null => {
+  if (!program) return null
   const match = program.match(/^(\w+) (.+?)$/)
   if (!match) throw "Could not parse program"
 
@@ -68,8 +75,8 @@ export const parseProgram = (program: string): (nibble: Nibble) => Result => {
   const programArguments = match[2].split(" ")
 
   if (programName === "CONSTANT") {
-    return (nibble: Nibble) => {
-      const {value, operation} = decodeArgument(programArguments[0], nibble)
+    return (nibble: Nibble, otherNibble?: Nibble) => {
+      const {value, operation} = decodeArgument(programArguments[0], nibble, otherNibble)
       return {
         out: 1,
         operation: operation || "ADD",
@@ -77,11 +84,10 @@ export const parseProgram = (program: string): (nibble: Nibble) => Result => {
       }
     }
   } else if (programName === "CHOICE") {
-    return (nibble: Nibble) => {
-      const foo = decodeArgument(match[2], nibble)
-      const {value: choice} = decodeArgument(programArguments[0], nibble) 
-      const {value: onValue, operation: onOperation} = decodeArgument(programArguments[1], nibble) 
-      const {value: offValue, operation: offOperation} = decodeArgument(programArguments[2], nibble) 
+    return (nibble: Nibble, otherNibble?: Nibble) => {
+      const {value: choice} = decodeArgument(programArguments[0], nibble, otherNibble) 
+      const {value: onValue, operation: onOperation} = decodeArgument(programArguments[1], nibble, otherNibble) 
+      const {value: offValue, operation: offOperation} = decodeArgument(programArguments[2], nibble, otherNibble) 
       if (choice === 0) {
         return {
           out: 0,
@@ -101,32 +107,34 @@ export const parseProgram = (program: string): (nibble: Nibble) => Result => {
   throw "Could not parse program"
 }
 
-export const decodeValue = (argument: string | number, nibble: Nibble): number => {
+export const decodeValue = (argument: string | number, nibble: Nibble, otherNibble?: Nibble): number => {
   if (typeof(argument) !== "string") return argument
 
   let p: any
-  if (p = argument.match(/\+?(\d+)/)) return Number(p[1])
+  if (p = argument.match(/^\+?(\d+)/)) return Number(p[1])
   if (p = argument.match(/\-(\d+)/)) return Number(p[0])
   if (p = argument.match(/^\*(\d)$/)) return digit(nibble,p[1])
+  if (p = argument.match(/^x(\d)$/)) return digit(otherNibble || nibble,p[1])
   
   // By default let's return a true bit
   return 1
 }
 
 
-export const decodeArgument = (argument: string, nibble: Nibble) : {operation: Operation | null, value: number} => {
+export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: Nibble) : {operation: Operation | null, value: number} => {
   if (typeof(argument) !== "string") return {operation: null, value: argument || 0}
   const fnMatch = /^(\w+)?\[(.+?)?\]$/ 
   const match = argument.match(fnMatch)
 
   // Without a function, treat argument as plain value
-  if (!match) return {operation: null, value: decodeValue(argument, nibble)}
+  if (!match) return {operation: null, value: decodeValue(argument, nibble, otherNibble)}
 
   const fn = match[1]
   const data = match[2]
 
   if (data?.match(fnMatch)) {
-    const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble)
+    const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble,otherNibble)
+
     // IMAGE SHIFT[XOR[2,4]]
     // HERE WE MIGHT HAVE operation = SHIFT, innerOperaton = XOR, innerValue = 1
     return {
@@ -134,46 +142,46 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       value: innerValue
     }
   } else {
-    const values = data?.split(",").map(d => decodeArgument(d, nibble).value)
+    const values = data?.split(",").map(d => decodeArgument(d, nibble, otherNibble).value)
     if (fn === "AND") {
-      const isOn = values.every(d => decodeValue(d, nibble) === 1) 
+      const isOn = values.every(d => decodeValue(d, nibble, otherNibble) === 1) 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "OR") {
-      const isOn = values.some(d => decodeValue(d, nibble) === 1)
+      const isOn = values.some(d => decodeValue(d, nibble, otherNibble) === 1)
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "XOR") {
-      const onBits = values.filter(d => decodeValue(d, nibble) === 1)
+      const onBits = values.filter(d => decodeValue(d, nibble, otherNibble) === 1)
       const isOn = (onBits.length & 1) === 1
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "GT") {
-      const comparator = decodeValue(values[0], nibble)
+      const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) > comparator 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "GTE") {
-      const comparator = decodeValue(values[0], nibble)
+      const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) >= comparator 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "LT") {
-      const comparator = decodeValue(values[0], nibble)
+      const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) < comparator 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "LTE") {
-      const comparator = decodeValue(values[0], nibble)
+      const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) <= comparator 
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "BETWEEN") {
-      const low = decodeValue(values[0], nibble)
-      const high = decodeValue(values[1], nibble)
+      const low = decodeValue(values[0], nibble, otherNibble)
+      const high = decodeValue(values[1], nibble, otherNibble)
       const isOn = toInt(nibble) > low && toInt(nibble) < high
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "OUTSIDE") {
-      const low = decodeValue(values[0], nibble)
-      const high = decodeValue(values[1], nibble)
+      const low = decodeValue(values[0], nibble, otherNibble)
+      const high = decodeValue(values[1], nibble, otherNibble)
       const isOn = toInt(nibble) < low && toInt(nibble) > high
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "SHIFT") {
       // an empty SHIFT will copy the last bit from the nibble
-      const value = data ? decodeValue(data[0], nibble): digit(nibble, 8)
+      const value = data ? decodeValue(data[0], nibble, otherNibble): digit(nibble, 8)
       return {operation: "SHIFT", value}
     } else if (fn === "EVEN") {
       // This is the same as NOT[*1] but nicer to read
@@ -184,10 +192,10 @@ export const decodeArgument = (argument: string, nibble: Nibble) : {operation: O
       const isOn = (toInt(nibble) & 1) === 1
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "NOT") {
-      const isOn = values.every(d => decodeValue(d, nibble) === 0) 
+      const isOn = values.every(d => decodeValue(d, nibble, otherNibble) === 0) 
       return {operation: fn, value: toBit(isOn)}
     } else {
-      return {operation: null, value: decodeValue(data, nibble)}
+      return {operation: null, value: decodeValue(data, nibble, otherNibble)}
     }
   }
 }
