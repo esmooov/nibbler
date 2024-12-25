@@ -22,7 +22,7 @@ const execute = (programA: string, programB: string) => {
 
     const tests = omit(analysisA, "preHistory", "mainHistory")
     if (args["shortest"]) {
-      console.log(pickBy(tests, (value) => value))
+      //console.log(pickBy(tests, (value) => value))
     } else {
       console.log(tests)
     }
@@ -31,15 +31,23 @@ const execute = (programA: string, programB: string) => {
 
 for (let a = -15; a < 16; a++) {
   for (let b = -15; b < 16; b++) {
-    for (let c = 0; c < 16; c++) {
-      bits.forEach(bit => {
-        const programA = `CHOICE OR[x${bit}] ${a} ${b}`
-        const programB = `CONSTANT ${c}`
-        execute(programA, programB)
-      })
+    for (let d = 0; d < 16; d++) {
+      const programA = `CHOICE AND[x1,x4,x8] ${a} ${b}`
+      const programB = `CONSTANT ${d}`
+      execute(programA, programB)
     }
   }
 }
+
+// for (let a = -15; a < 16; a++) {
+//   for (let b = -15; b < 16; b++) {
+//     bits.forEach(bitA => {
+//       const programA = `CHOICE XOR[x${bitA}] SHIFT[x${bitA}] ${a}`
+//       const programB = `CONSTANT ${b}`
+//       execute(programA, programB)
+//     })
+//   }
+// }
 
 
 // for (let a = -15; a < 16; a++) {

@@ -1,7 +1,7 @@
 import { isEqual, isNull, isNumber, omit } from "lodash"
 import { Analysis } from "./analyze"
 
-export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE" | "EVEN" | "ODD" | "BETWEEN" | "OUTSIDE"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "GTX" | "LT" | "LTE" | "EVEN" | "ODD" | "BETWEEN" | "OUTSIDE"
 
 export type Result = {
   operation: Operation,
@@ -157,6 +157,10 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
       const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) > comparator 
       return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "GTX") {
+      const comparator = decodeValue(values[0], nibble, otherNibble)
+      const isOn = otherNibble && toInt(otherNibble) > comparator 
+      return {operation: fn, value: toBit(!!isOn)}
     } else if (fn === "GTE") {
       const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) >= comparator 
@@ -213,8 +217,12 @@ export const displayTable = (history: History) => {
 }
 
 export const printProgram = (analysis: Analysis, rawProgram: string, short?: boolean) => {
-  console.log("")
-  console.log(`PROGRAM: ${rawProgram}`)
+  if (short) {
+    console.log(rawProgram.replace(/[^x*\d- ]/g,"").replace(" ","\t"))
+  } else {
+    console.log("")
+    console.log(`PROGRAM: ${rawProgram}`)
+  }
   if (analysis.preHistory.length && !short) {
     displayTable(analysis.preHistory)
     console.log("--------------------------------------")
