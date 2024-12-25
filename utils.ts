@@ -1,4 +1,5 @@
 import { isEqual, isNull, isNumber, omit } from "lodash"
+import { Analysis } from "./analyze"
 
 export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "LT" | "LTE"
 
@@ -185,17 +186,12 @@ export const displayTable = (history: History) => {
   console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument", "carry"])
 }
 
-export const printProgram = (rawProgram: string, history: History) => {
+export const printProgram = (analysis: Analysis, rawProgram: string, short?: boolean) => {
   console.log("")
   console.log(`PROGRAM: ${rawProgram}`)
-  const firstLoopIdx = history.findIndex(o => o.loop) 
-  const firstLoopState = history[firstLoopIdx]
-  const firstMatchedIdx = history.findIndex(h => statesAreEqual(h, firstLoopState))
-  const preHistory = history.slice(0,firstMatchedIdx)
-  const mainHistory = history.slice(firstMatchedIdx, firstLoopIdx)
-  if (preHistory.length) {
-    displayTable(preHistory)
+  if (analysis.preHistory.length && !short) {
+    displayTable(analysis.preHistory)
     console.log("--------------------------------------")
   }
-  displayTable(mainHistory)
+  if (!short) displayTable(analysis.mainHistory)
 }
