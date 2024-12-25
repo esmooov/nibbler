@@ -40,11 +40,14 @@ export const runNibblers = (rawProgramA: string, rawProgramB: string) => {
     dataA.carry = newStateA.n < dataA.n ? 1 : 0
     dataB.carry = newStateB.n < dataB.n ? 1 : 0
 
-    const loopA = currentHistoryA.some(state => isEqual(rawState(state), newStateA))
-    const loopB = currentHistoryB.some(state => isEqual(rawState(state), newStateB))
+    const loop = currentHistoryA.some((stateA, i) => {
+       const matchA = isEqual(rawState(stateA), newStateA);
+       const matchB = isEqual(rawState(currentHistoryB[i]), newStateB)
+       return matchA && matchB
+    })
 
-    currentHistoryA.push({...newStateA, loop: loopA}) 
-    currentHistoryB.push({...newStateB, loop: loopB}) 
+    currentHistoryA.push({...newStateA, loop}) 
+    currentHistoryB.push({...newStateB, loop}) 
 
     return [currentHistoryA, currentHistoryB]
   }, [initialHistoryA,initialHistoryB])

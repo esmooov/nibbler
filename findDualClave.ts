@@ -16,7 +16,7 @@ const execute = (programA: string, programB: string) => {
   const analysisA = analyze(historyA, test)
   const analysisB = analyze(historyB, test)
 
-  if (analysisA.inAny && (!args["strictLength"] || args["strictLength"] === analysis.loopLength)) {
+  if (analysisA.inAny && (!args["strictLength"] || args["strictLength"] === analysisA.loopLength)) {
     printProgram(analysisA, programA, args["short"])
     printProgram(analysisB, programB, args["short"])
 
