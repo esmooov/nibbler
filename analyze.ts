@@ -29,6 +29,7 @@ export const analyze = (history: History, test: (queue: Array<Bit>) => boolean) 
   const firstLoopState = history[firstLoopIdx]
   const firstMatchedIdx = history.findIndex(h => statesAreEqual(h, firstLoopState))
   const preHistory = history.slice(0,firstMatchedIdx)
+  // TODO fix looping
   const mainHistory = history.slice(firstMatchedIdx, firstLoopIdx)
 
   const oneBits = history.map(h => h.nibble[0])
