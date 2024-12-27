@@ -119,6 +119,7 @@ export const printAnalysis = (
 const displayTable = (history: History) => {
   const table = new Table({
     columns: [
+      { name: "i" },
       {
         name: "descriptionA",
         alignment: "left",
@@ -147,8 +148,8 @@ const displayTable = (history: History) => {
       },
     ],
   });
-  history.forEach((entry) => {
-    table.addRow(entry);
+  history.forEach((entry, i) => {
+    table.addRow({ ...entry, i });
   });
   table.printTable();
 };
