@@ -5,85 +5,40 @@ import {
   digit,
   Nibble,
   toBit,
+  toInt,
+  toNibble,
   Update,
 } from "./simulate";
 
-type NibbleTransformer<T> = {
-  (nibble: Nibble, otherNibble: Nibble): T;
-  description?: string;
-};
+enum TransformerType {
+  Bit,
+  Nibble,
+  Update,
+}
 
-type PFunction<T> = (...args: any[]) => NibbleTransformer<T>;
-
-export const choice: PFunction<Update> = (
-  test: NibbleTransformer<Bit>,
-  left: NibbleTransformer<Nibble>,
-  right: NibbleTransformer<Nibble>
-) => {
-  const fn = (nibble, otherNibble) => {
-    const isOn = test(nibble, otherNibble) === 1;
-    const chosenOperation = isOn ? left : right;
-    return {
-      value: chosenOperation(nibble, otherNibble),
-      description: `CHOICE: ${isOn} (${chosenOperation.description})`,
+type NibbleTransformer<T extends Bit | Nibble | Update> = T extends Bit
+  ? {
+      (nibble: Nibble, otherNibble: Nibble): Bit;
+      type: TransformerType.Bit;
+      description?: string;
+    }
+  : T extends Nibble
+  ? {
+      (nibble: Nibble, otherNibble: Nibble): Nibble;
+      type: TransformerType.Nibble;
+      description?: string;
+    }
+  : {
+      (nibble: Nibble, otherNibble: Nibble): Update;
+      type: TransformerType.Update;
+      description?: string;
     };
-  };
-  fn.description = `CHOOSE ${test.description} ? ${left.description} : ${right.description}`;
-  return fn;
-};
-
-export const constant: PFunction<Update> = (t: NibbleTransformer<Nibble>) => {
-  const fn = (nibble, otherNibble) => {
-    return {
-      value: t(nibble, otherNibble),
-      description: `${t.description}`,
-    };
-  };
-  fn.description = `CONSTANT ${t.description}`;
-  return fn;
-};
-
-export const and: PFunction<Bit> = (
-  ...checks: Array<NibbleTransformer<Bit>>
-) => {
-  const fn = (nibble, otherNibble) => {
-    return toBit(checks.every((check) => check(nibble, otherNibble) === 1));
-  };
-  fn.description = `AND(${checks.map((c) => c.description).join(", ")})`;
-  return fn;
-};
-
-export const b: PFunction<Bit> = (index: BitIndex) => {
-  const fn = (nibble) => {
-    return digit(nibble, index);
-  };
-  fn.description = `${index}-bit`;
-  return fn;
-};
-
-export const x: PFunction<Bit> = (index: BitIndex) => {
-  const fn = (nibble, otherNibble) => {
-    return digit(otherNibble, index);
-  };
-  fn.description = `Other's ${index}-bit`;
-  return fn;
-};
-
-export const add: PFunction<Nibble> = (
-  addend: number | Nibble | NibbleTransformer<Nibble>
-) => {
-  const fn = (nibble, otherNibble) => {
-    return addBits(nibble, resolve(addend, nibble, otherNibble));
-  };
-  fn.description = `Add ${description(addend)}`;
-  return fn;
-};
 
 export const resolve = <T>(
   value: T,
   nibble: Nibble,
   otherNibble: Nibble
-): T extends NibbleTransformer<unknown> ? ReturnType<T> : T => {
+): T extends NibbleTransformer<any> ? ReturnType<T> : T => {
   if (typeof value === "function") {
     return value(nibble, otherNibble);
   }
@@ -91,20 +46,116 @@ export const resolve = <T>(
   return value as any;
 };
 
-const description = (
-  t: NibbleTransformer<unknown> | number | Nibble
-): string => {
+const description = (t: NibbleTransformer<any> | number | Nibble): string => {
   if (typeof t === "function" && t.description) return t.description;
 
   return String(t);
 };
 
-export const other: PFunction<Nibble> = () => {
+export const choice = (
+  test: NibbleTransformer<Bit>,
+  left: NibbleTransformer<Nibble>,
+  right: NibbleTransformer<Nibble>
+): NibbleTransformer<Update> => {
+  const fn = (nibble, otherNibble) => {
+    const isOn = test(nibble, otherNibble) === 1;
+    const chosenOperation = isOn ? left : right;
+    return {
+      value: chosenOperation(nibble, otherNibble),
+      description: `${isOn ? "←" : "→"} (${description(chosenOperation)})`,
+    };
+  };
+  fn.description = `CHOOSE ${description(test)} ? ${description(
+    left
+  )} : ${description(right)}`;
+  fn.type = TransformerType.Update;
+  return fn as NibbleTransformer<Update>;
+};
+
+export const constant = (
+  t: NibbleTransformer<Nibble>
+): NibbleTransformer<Update> => {
+  const fn = (nibble, otherNibble) => {
+    return {
+      value: t(nibble, otherNibble),
+      description: `${description(t)}`,
+    };
+  };
+  fn.description = `CONSTANT ${description(t)}`;
+  fn.type = TransformerType.Update;
+  return fn as NibbleTransformer<Update>;
+};
+
+export function and(
+  ...checks: Array<NibbleTransformer<Bit>>
+): NibbleTransformer<Bit>;
+export function and(
+  ...checks: Array<NibbleTransformer<Nibble>>
+): NibbleTransformer<Nibble>;
+export function and(...checks) {
+  if (checks[0].type === TransformerType.Bit) {
+    const c: Array<NibbleTransformer<Bit>> = checks;
+    const fn = (nibble, otherNibble) => {
+      return toBit(checks.every((check) => check(nibble, otherNibble) === 1));
+    };
+    fn.description = `AND(${checks.map((c) => description(c)).join(", ")})`;
+    fn.type = TransformerType.Bit;
+    return fn as NibbleTransformer<Bit>;
+  }
+
+  const fn = (nibble, otherNibble) => {
+    return toNibble(toInt(nibble) & toInt(otherNibble));
+  };
+  fn.description = `AND(${checks.map((c) => description(c)).join(", ")})`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+}
+
+export const n = (index: BitIndex): NibbleTransformer<Bit> => {
+  const fn = (nibble, otherNibble) => {
+    return digit(nibble, index);
+  };
+  fn.description = `Self ${index}-bit`;
+  fn.type = TransformerType.Bit;
+  return fn as NibbleTransformer<Bit>;
+};
+
+export const x = (index: BitIndex): NibbleTransformer<Bit> => {
+  const fn = (nibble, otherNibble) => {
+    return digit(otherNibble, index);
+  };
+  fn.description = `Other ${index}-bit`;
+  fn.type = TransformerType.Bit;
+  return fn as NibbleTransformer<Bit>;
+};
+
+export const add = (
+  addend: number | Nibble | NibbleTransformer<Nibble>
+): NibbleTransformer<Nibble> => {
+  const fn = (nibble, otherNibble) => {
+    return addBits(nibble, resolve(addend, nibble, otherNibble));
+  };
+  fn.description = `Add ${description(addend)}`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
+export const own = (): NibbleTransformer<Nibble> => {
+  const fn = (nibble) => {
+    return nibble;
+  };
+  fn.description = `Self`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
+export const other = (): NibbleTransformer<Nibble> => {
   const fn = (nibble, otherNibble) => {
     return otherNibble;
   };
-  fn.description = `Get Other`;
-  return fn;
+  fn.description = `Other`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
 };
 
 export type Program = {

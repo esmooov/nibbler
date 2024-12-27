@@ -121,6 +121,7 @@ const displayTable = (history: History) => {
     columns: [
       {
         name: "descriptionA",
+        alignment: "left",
       },
       {
         name: "NA",
@@ -133,6 +134,7 @@ const displayTable = (history: History) => {
       },
       {
         name: "descriptionB",
+        alignment: "left",
       },
       {
         name: "NB",
