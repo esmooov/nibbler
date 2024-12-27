@@ -1,7 +1,7 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { Program, runNibblers } from "./simulate";
-import { add, and, choice, constant, makeProgram, x } from "./program";
+import { add, and, choice, constant, makeProgram, other, x } from "./program";
 import { analyze, printAnalysis, processTest } from "./analyze";
 
 const bits = [1, 2, 4, 8];
@@ -32,11 +32,19 @@ const execute = (program: Program) => {
 //         bits.forEach(bitB => {
 
 // prettier-ignore
+// const program = makeProgram(
+//   choice(
+//     and(x(4), x(8)),
+//     add(11),
+//     add(3)
+//   ),
+//   constant(
+//     add(7)
+//   )
+// )
 const program = makeProgram(
-  choice(
-    and(x(4), x(8)),
-    add(11),
-    add(3)
+  constant(
+    add(other())
   ),
   constant(
     add(7)

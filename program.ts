@@ -69,11 +69,41 @@ export const x: PFunction<Bit> = (index: BitIndex) => {
   return fn;
 };
 
-export const add: PFunction<Nibble> = (addend: number) => {
+export const add: PFunction<Nibble> = (
+  addend: number | Nibble | NibbleTransformer<Nibble>
+) => {
   const fn = (nibble, otherNibble) => {
-    return addBits(nibble, addend);
+    return addBits(nibble, resolve(addend, nibble, otherNibble));
   };
-  fn.description = `Add ${addend}`;
+  fn.description = `Add ${description(addend)}`;
+  return fn;
+};
+
+export const resolve = <T>(
+  value: T,
+  nibble: Nibble,
+  otherNibble: Nibble
+): T extends NibbleTransformer<unknown> ? ReturnType<T> : T => {
+  if (typeof value === "function") {
+    return value(nibble, otherNibble);
+  }
+
+  return value as any;
+};
+
+const description = (
+  t: NibbleTransformer<unknown> | number | Nibble
+): string => {
+  if (typeof t === "function" && t.description) return t.description;
+
+  return String(t);
+};
+
+export const other: PFunction<Nibble> = () => {
+  const fn = (nibble, otherNibble) => {
+    return otherNibble;
+  };
+  fn.description = `Get Other`;
   return fn;
 };
 
