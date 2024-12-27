@@ -49,9 +49,9 @@ const execute = (program: Program) => {
 for (let a = 0; a < 16; a++) {
   for (let b = 0; b < 16; b++) {
     const program = makeProgram(
-      constant(add(xor(other(), nibble(7)))),
+      constant(add(xor(other(), nibble(a)))),
       constant(
-        add(7)
+        add(b)
       )
     )
     execute(program);
