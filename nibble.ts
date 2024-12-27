@@ -1,28 +1,11 @@
 import { isEqual } from "lodash"
-import { Nibble, toInt, add, State, History, Bit, parseProgram, rawState, defaultResult} from "./utils"
+import { Nibble, Program } from "./simulate"
 
-export const runNibblers = (rawProgramA: string, rawProgramB: string) => {
+export const runNibblers = (program: Program) => {
 
   const rows = Array.from(Array(32).keys())
-  const programA = parseProgram(rawProgramA)
-  const programB = parseProgram(rawProgramB)
-
-  const createAdderState = (program: ReturnType<typeof parseProgram>, nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number): Omit<State, "loop"> => {
-    const result = program ? program(nibble, otherNibble, oldA, oldB) : defaultResult
-    return {
-      ...result,
-      nibble,
-      n: toInt(nibble),
-    }
-  }
-
-  const getNextNibble = (data: State): Nibble => {
-    if (data.operation === "SHIFT") {
-      return [data.argument as Bit, data.nibble[0], data.nibble[1], data.nibble[2]]
-    }
-
-    return add(data.nibble,data.argument)
-  }
+  const nibbleA: Nibble = [0,0,0,0]
+  const nibbleB: Nibble = [0,0,0,0]
 
   const initialHistoryA: History = [{...createAdderState(programA, [0,0,0,0], [0,0,0,0], 0, 0), loop: false}]
   const initialHistoryB: History = [{...createAdderState(programB, [0,0,0,0], [0,0,0,0], 0, 0), loop: false}]

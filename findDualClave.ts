@@ -1,32 +1,29 @@
 import yargs from "yargs"
 import {hideBin} from "yargs/helpers"
-import { printProgram} from "./utils"
-import { runSingleNibbler } from "./singleNibble"
-import { analyze, checkForBossa, checkForGahu, checkForRumbaClave, checkForShiko, checkForSonClave, checkForSoukous } from "./analyze"
-import { omit, pickBy } from "lodash"
-import { runNibblers } from "./nibble"
+import { Program, runNibblers } from "./simulate"
+import { add, and, choice, constant, x } from "./program"
 
 const bits = [1,2,4,8]
 
 const args = yargs(hideBin(process.argv)).parse()
 const test = (queue) => !!queue.join("").match(args["test"]) 
 
-const execute = (programA: string, programB: string) => {
-  const [historyA, historyB] = runNibblers(programA, programB)
-  const analysisA = analyze(historyA, historyB, test)
-  const analysisB = analyze(historyB, null, test)
+const execute = (program: Program) => {
+  const state = runNibblers(program)
+  console.log(state)
+  // const analysis = analyze(state, test)
 
-  if (analysisA.inAny && (!args["strictLength"] || args["strictLength"] === analysisA.loopLength)) {
-    printProgram(analysisA, programA, args["short"])
-    printProgram(analysisB, programB, args["short"])
+  // if (analysisA.inAny && (!args["strictLength"] || args["strictLength"] === analysisA.loopLength)) {
+  //   printProgram(analysisA, programA, args["short"])
+  //   printProgram(analysisB, programB, args["short"])
 
-    const tests = omit(analysisA, "preHistory", "mainHistory", "andcarries", "orcarries", "xorcarries")
-    if (args["shortest"]) {
-      console.log(pickBy(tests, (value) => value))
-    } else {
-      console.log(tests)
-    }
-  }
+  //   const tests = omit(analysisA, "preHistory", "mainHistory", "andcarries", "orcarries", "xorcarries")
+  //   if (args["shortest"]) {
+  //     console.log(pickBy(tests, (value) => value))
+  //   } else {
+  //     console.log(tests)
+  //   }
+  // }
 }
 
 // for (let a = -15; a < 16; a++) {
@@ -44,9 +41,19 @@ for (let a = 0; a < 16; a++) {
     for (let c = 0; c < 16; c++) {
       bits.forEach((bitA,i) => {
         bits.forEach(bitB => {
-            const programA = `CHOICE AND[x${bitA},x${bitB}] ${a} ${b}`
-            const programB = `CONSTANT ${c}`
-            execute(programA, programB)
+            const program: Program = (nibbleA, nibbleB) => {
+              const updateA = choice(
+                and(x(bitA), x(bitB)),
+                add(a),
+                add(b)
+              )(nibbleA, nibbleB)
+
+              const updateB = constant(
+                add(c)
+              )(nibbleB, nibbleA)
+              return [updateA, updateB]
+            }
+            execute(program)
         })
       })
     }
