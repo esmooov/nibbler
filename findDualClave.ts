@@ -1,17 +1,20 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { runNibblers } from "./simulate";
+import { runNibblers, toNibble } from "./simulate";
 import {
   add,
   and,
   choice,
   constant,
   makeProgram,
+  nibble,
   not,
+  or,
   other,
   own,
   Program,
   x,
+  xor,
 } from "./program";
 import { analyze, printAnalysis, processTest } from "./analyze";
 
@@ -20,7 +23,7 @@ const bits = [1, 2, 4, 8];
 const args = yargs(hideBin(process.argv)).parse();
 
 const execute = (program: Program) => {
-  const state = runNibblers(program);
+  const state = runNibblers(program, args["iterations"]);
   const test = processTest(args["test"]);
   const analysis = analyze(state, test);
   printAnalysis(analysis, program, args);
@@ -44,11 +47,12 @@ const execute = (program: Program) => {
 
 // prettier-ignore
 const program = makeProgram(
-  choice(
-    and(x(4), x(8)),
-    add(not(own())),
-    add(3)
-  ),
+  constant(add(and(other(), own()))),
+  // choice(
+  //   and(x(4), x(8)),
+  //   add(xor(other(), nibble(8))),
+  //   add(3)
+  // ),
   constant(
     add(7)
   )

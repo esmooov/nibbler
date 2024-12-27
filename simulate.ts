@@ -74,8 +74,11 @@ export type State = {
   NB: number;
 };
 
-export const runNibblers = (program: Program): State => {
-  const rows = Array.from(Array(32).keys());
+export const runNibblers = (
+  program: Program,
+  iterations: number = 32
+): State => {
+  const rows = Array.from(Array(iterations).keys());
 
   const initialState: State = {
     nibbleA: [0, 0, 0, 0],

@@ -87,14 +87,16 @@ export const constant = (
 };
 
 const makeLogicTransformer = (
-  checks: Array<NibbleTransformer<Bit>> | Array<NibbleTransformer<Nibble>>,
+  transformers:
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>,
   bitTransformer: Omit<NibbleTransformer<Bit>, "description" | "type">,
   nibbleTransformer: Omit<NibbleTransformer<Nibble>, "description" | "type">,
   prefix: string
 ) => {
-  if (checks[0].type === TransformerType.Bit) {
+  if (transformers[0].type === TransformerType.Bit) {
     const fn = bitTransformer as NibbleTransformer<Bit>;
-    fn.description = `${prefix}(${checks
+    fn.description = `${prefix}(${transformers
       .map((c) => description(c))
       .join(", ")})`;
     fn.type = TransformerType.Bit;
@@ -102,87 +104,120 @@ const makeLogicTransformer = (
   }
 
   const fn = nibbleTransformer as NibbleTransformer<Nibble>;
-  fn.description = `${prefix}(${checks.map((c) => description(c)).join(", ")})`;
+  fn.description = `${prefix}(${transformers
+    .map((c) => description(c))
+    .join(", ")})`;
   fn.type = TransformerType.Nibble;
   return fn;
 };
 
 export function and(
-  ...checks: Array<NibbleTransformer<Bit>>
+  ...transformers: Array<NibbleTransformer<Bit>>
 ): NibbleTransformer<Bit>;
 export function and(
-  ...checks: Array<NibbleTransformer<Nibble>>
+  ...transformers: Array<NibbleTransformer<Nibble>>
 ): NibbleTransformer<Nibble>;
 export function and(
-  ...checks: Array<NibbleTransformer<Bit>> | Array<NibbleTransformer<Nibble>>
+  ...transformers:
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>
 ) {
   return makeLogicTransformer(
-    checks,
+    transformers,
     (nibble, otherNibble) => {
-      return toBit(checks.every((check) => check(nibble, otherNibble) === 1));
+      return toBit(
+        transformers.every(
+          (transformer) => transformer(nibble, otherNibble) === 1
+        )
+      );
     },
     (nibble, otherNibble) => {
-      return toNibble(toInt(nibble) & toInt(otherNibble));
+      const result = transformers.slice(1).reduce((n, transformer) => {
+        return n & toInt(transformer(nibble, otherNibble));
+      }, toInt(transformers[0](nibble, otherNibble)));
+      return toNibble(result);
     },
     "AND"
   );
 }
 
 export function or(
-  ...checks: Array<NibbleTransformer<Bit>>
+  ...transformers: Array<NibbleTransformer<Bit>>
 ): NibbleTransformer<Bit>;
 export function or(
-  ...checks: Array<NibbleTransformer<Nibble>>
+  ...transformers: Array<NibbleTransformer<Nibble>>
 ): NibbleTransformer<Nibble>;
 export function or(
-  ...checks: Array<NibbleTransformer<Bit>> | Array<NibbleTransformer<Nibble>>
+  ...transformers:
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>
 ) {
   return makeLogicTransformer(
-    checks,
+    transformers,
     (nibble, otherNibble) => {
-      return toBit(checks.some((check) => check(nibble, otherNibble) === 1));
+      return toBit(
+        transformers.some(
+          (transformer) => transformer(nibble, otherNibble) === 1
+        )
+      );
     },
     (nibble, otherNibble) => {
-      return toNibble(toInt(nibble) | toInt(otherNibble));
+      const result = transformers.slice(1).reduce((n, transformer) => {
+        return n | toInt(transformer(nibble, otherNibble));
+      }, toInt(transformers[0](nibble, otherNibble)));
+      return toNibble(result);
     },
     "OR"
   );
 }
 
 export function xor(
-  ...checks: Array<NibbleTransformer<Bit>>
+  ...transformers: Array<NibbleTransformer<Bit>>
 ): NibbleTransformer<Bit>;
 export function xor(
-  ...checks: Array<NibbleTransformer<Nibble>>
+  ...transformers: Array<NibbleTransformer<Nibble>>
 ): NibbleTransformer<Nibble>;
 export function xor(
-  ...checks: Array<NibbleTransformer<Bit>> | Array<NibbleTransformer<Nibble>>
+  ...transformers:
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>
 ) {
   return makeLogicTransformer(
-    checks,
+    transformers,
     (nibble, otherNibble) => {
-      const onBits = checks.filter((check) => check(nibble, otherNibble) === 1);
+      const onBits = transformers.filter(
+        (transformer) => transformer(nibble, otherNibble) === 1
+      );
       return onBits.length & 1;
     },
     (nibble, otherNibble) => {
-      return toNibble(toInt(nibble) ^ toInt(otherNibble));
+      const result = transformers.slice(1).reduce((n, transformer) => {
+        return n ^ toInt(transformer(nibble, otherNibble));
+      }, toInt(transformers[0](nibble, otherNibble)));
+      return toNibble(result);
     },
     "XOR"
   );
 }
 
-export function not(checks: NibbleTransformer<Bit>): NibbleTransformer<Bit>;
 export function not(
-  checks: NibbleTransformer<Nibble>
+  transformers: NibbleTransformer<Bit>
+): NibbleTransformer<Bit>;
+export function not(
+  transformers: NibbleTransformer<Nibble>
 ): NibbleTransformer<Nibble>;
-export function not(check: NibbleTransformer<Bit> | NibbleTransformer<Nibble>) {
+export function not(
+  transformer: NibbleTransformer<Bit> | NibbleTransformer<Nibble>
+) {
   return makeLogicTransformer(
-    [check] as Array<NibbleTransformer<Bit>> | Array<NibbleTransformer<Nibble>>,
+    [transformer] as
+      | Array<NibbleTransformer<Bit>>
+      | Array<NibbleTransformer<Nibble>>,
     (nibble, otherNibble) => {
-      return toBit(check(nibble, otherNibble) !== 1);
+      return toBit(transformer(nibble, otherNibble) !== 1);
     },
     (nibble, otherNibble) => {
-      return toNibble(~toInt(nibble));
+      return toNibble(~toInt(transformer(nibble, otherNibble)));
     },
     "NOT"
   );
@@ -231,6 +266,15 @@ export const other = (): NibbleTransformer<Nibble> => {
     return otherNibble;
   };
   fn.description = `Other`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
+export const nibble = (n: number): NibbleTransformer<Nibble> => {
+  const fn = (nibble, otherNibble) => {
+    return toNibble(n);
+  };
+  fn.description = `${n}`;
   fn.type = TransformerType.Nibble;
   return fn as NibbleTransformer<Nibble>;
 };
