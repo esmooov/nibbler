@@ -7,6 +7,7 @@ import {
   choice,
   constant,
   makeProgram,
+  not,
   other,
   own,
   Program,
@@ -45,7 +46,7 @@ const execute = (program: Program) => {
 const program = makeProgram(
   choice(
     and(x(4), x(8)),
-    and(own(), other()),
+    add(not(own())),
     add(3)
   ),
   constant(
