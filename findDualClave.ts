@@ -46,17 +46,17 @@ const execute = (program: Program) => {
 //         bits.forEach(bitB => {
 
 // prettier-ignore
-const program = makeProgram(
-  constant(add(and(other(), own()))),
-  // choice(
-  //   and(x(4), x(8)),
-  //   add(xor(other(), nibble(8))),
-  //   add(3)
-  // ),
-  constant(
-    add(7)
-  )
-)
+for (let a = 0; a < 16; a++) {
+  for (let b = 0; b < 16; b++) {
+    const program = makeProgram(
+      constant(add(xor(other(), nibble(7)))),
+      constant(
+        add(7)
+      )
+    )
+    execute(program);
+  }
+}
 // const program = makeProgram(
 //   constant(
 //     add(other())
@@ -65,7 +65,6 @@ const program = makeProgram(
 //     add(7)
 //   )
 // )
-execute(program);
 
 //         })
 //       })
