@@ -22,50 +22,6 @@ export const statesAreEqual = (a: State, b: State) => isEqual(rawState(a), rawSt
 
 export type History = Array<State>
 
-export type Bit = 0 | 1
-export const toBit = (b: boolean) => b ? 1 : 0
-
-export type Nibble = [Bit,Bit,Bit,Bit]
-
-export const toInt = (n: Nibble | number): number => {
-  if (typeof n === "number") return n
-  return parseInt(n.slice().reverse().join(""),2);
-}
-
-export const toNibble = (n: number): Nibble => {
-  const mRaw = n % 16;
-  const m = mRaw < 0 ? 16 + mRaw : mRaw
-  return Number(m).toString(2).padStart(4,"0").split("").reverse().map(c => Number(c)) as Nibble
-}
-
-export const add = (a: Nibble | number | null, b: Nibble | number | null): Nibble => {
-  const aInt = isNull(a) ? 0 : toInt(a);
-  const bInt = isNull(b) ? 0 : toInt(b);
-  return toNibble(aInt + bInt);
-}
-
-
-export const digit = (n: Nibble, d: string | number) => {
-  switch (d) {
-    case "1":
-      return n[0]
-    case 1:
-      return n[0]
-    case "2":
-      return n[1]
-    case 2:
-      return n[1]
-    case "4":
-      return n[2]
-    case 4:
-      return n[2]
-    case "8":
-      return n[3]
-    case 8:
-      return n[3]
-  }
-  throw `${d} is not a legal digit`
-}
 
 export const parseProgram = (program: string): ((nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number) => Result) | null => {
   if (!program) return null

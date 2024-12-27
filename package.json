@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/lodash": "^4.17.13",
     "@types/node": "^22.10.2",
+    "console-table-printer": "^2.12.1",
     "dashargs": "^4.1.6",
     "lodash": "^4.17.21",
     "yargs": "^17.7.2"
