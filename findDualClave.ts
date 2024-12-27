@@ -13,28 +13,42 @@ const test = (queue) => !!queue.join("").match(args["test"])
 
 const execute = (programA: string, programB: string) => {
   const [historyA, historyB] = runNibblers(programA, programB)
-  const analysisA = analyze(historyA, test)
-  const analysisB = analyze(historyB, test)
+  const analysisA = analyze(historyA, historyB, test)
+  const analysisB = analyze(historyB, null, test)
 
   if (analysisA.inAny && (!args["strictLength"] || args["strictLength"] === analysisA.loopLength)) {
     printProgram(analysisA, programA, args["short"])
     printProgram(analysisB, programB, args["short"])
 
-    const tests = omit(analysisA, "preHistory", "mainHistory")
+    const tests = omit(analysisA, "preHistory", "mainHistory", "andcarries", "orcarries", "xorcarries")
     if (args["shortest"]) {
-      //console.log(pickBy(tests, (value) => value))
+      console.log(pickBy(tests, (value) => value))
     } else {
       console.log(tests)
     }
   }
 }
 
-for (let a = -15; a < 16; a++) {
-  for (let b = -15; b < 16; b++) {
-    for (let d = 0; d < 16; d++) {
-      const programA = `CHOICE AND[x1,x4,x8] ${a} ${b}`
-      const programB = `CONSTANT ${d}`
-      execute(programA, programB)
+// for (let a = -15; a < 16; a++) {
+//   for (let b = -15; b < 16; b++) {
+//     for (let c = -15; c < 16; c++) {
+//         const programA = `CHOICE CX[] ${a} ${b}`
+//         const programB = `CONSTANT ${c}`
+//         execute(programA, programB)
+//     }
+//   }
+// }
+
+for (let a = 0; a < 16; a++) {
+  for (let b = 0; b < 16; b++) {
+    for (let c = 0; c < 16; c++) {
+      bits.forEach((bitA,i) => {
+        bits.forEach(bitB => {
+            const programA = `CHOICE AND[x${bitA},x${bitB}] ${a} ${b}`
+            const programB = `CONSTANT ${c}`
+            execute(programA, programB)
+        })
+      })
     }
   }
 }

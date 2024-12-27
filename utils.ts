@@ -1,7 +1,7 @@
 import { isEqual, isNull, isNumber, omit } from "lodash"
 import { Analysis } from "./analyze"
 
-export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "GTX" | "LT" | "LTE" | "EVEN" | "ODD" | "BETWEEN" | "OUTSIDE"
+export type Operation = "ADD" | "SHIFT" | "AND" | "OR" | "XOR" | "NOT" | "GT" | "GTE" | "GTX" | "GTB" | "LTB" | "LT" | "LTE" | "EVEN" | "ODD" | "BETWEEN" | "OUTSIDE" | "BETWEENX" | "OUTSIDEX" | "CX"
 
 export type Result = {
   operation: Operation,
@@ -44,6 +44,7 @@ export const add = (a: Nibble | number | null, b: Nibble | number | null): Nibbl
   return toNibble(aInt + bInt);
 }
 
+
 export const digit = (n: Nibble, d: string | number) => {
   switch (d) {
     case "1":
@@ -66,7 +67,7 @@ export const digit = (n: Nibble, d: string | number) => {
   throw `${d} is not a legal digit`
 }
 
-export const parseProgram = (program: string): ((nibble: Nibble, otherNibble?: Nibble) => Result) | null => {
+export const parseProgram = (program: string): ((nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number) => Result) | null => {
   if (!program) return null
   const match = program.match(/^(\w+) (.+?)$/)
   if (!match) throw "Could not parse program"
@@ -75,8 +76,8 @@ export const parseProgram = (program: string): ((nibble: Nibble, otherNibble?: N
   const programArguments = match[2].split(" ")
 
   if (programName === "CONSTANT") {
-    return (nibble: Nibble, otherNibble?: Nibble) => {
-      const {value, operation} = decodeArgument(programArguments[0], nibble, otherNibble)
+    return (nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number) => {
+      const {value, operation} = decodeArgument(programArguments[0], nibble, otherNibble, oldA, oldB)
       return {
         out: 1,
         operation: operation || "ADD",
@@ -84,10 +85,10 @@ export const parseProgram = (program: string): ((nibble: Nibble, otherNibble?: N
       }
     }
   } else if (programName === "CHOICE") {
-    return (nibble: Nibble, otherNibble?: Nibble) => {
-      const {value: choice} = decodeArgument(programArguments[0], nibble, otherNibble) 
-      const {value: onValue, operation: onOperation} = decodeArgument(programArguments[1], nibble, otherNibble) 
-      const {value: offValue, operation: offOperation} = decodeArgument(programArguments[2], nibble, otherNibble) 
+    return (nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number) => {
+      const {value: choice} = decodeArgument(programArguments[0], nibble, otherNibble, oldA, oldB) 
+      const {value: onValue, operation: onOperation} = decodeArgument(programArguments[1], nibble, otherNibble, oldA, oldB) 
+      const {value: offValue, operation: offOperation} = decodeArgument(programArguments[2], nibble, otherNibble, oldA, oldB) 
       if (choice === 0) {
         return {
           out: 0,
@@ -121,7 +122,7 @@ export const decodeValue = (argument: string | number, nibble: Nibble, otherNibb
 }
 
 
-export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: Nibble) : {operation: Operation | null, value: number} => {
+export const decodeArgument = (argument: string, nibble: Nibble, otherNibble: Nibble, oldA: number, oldB: number) : {operation: Operation | null, value: number} => {
   if (typeof(argument) !== "string") return {operation: null, value: argument || 0}
   const fnMatch = /^(\w+)?\[(.+?)?\]$/ 
   const match = argument.match(fnMatch)
@@ -133,7 +134,7 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
   const data = match[2]
 
   if (data?.match(fnMatch)) {
-    const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble,otherNibble)
+    const {operation: innerOperation, value: innerValue} = decodeArgument(data,nibble,otherNibble,oldA,oldB)
 
     // IMAGE SHIFT[XOR[2,4]]
     // HERE WE MIGHT HAVE operation = SHIFT, innerOperaton = XOR, innerValue = 1
@@ -141,10 +142,15 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
       operation: fn as Operation,
       value: innerValue
     }
+    // WE STILL CANT HANDLE THINGS LIKE OR[*2,AND[*4,*8]]
+
   } else {
-    const values = data?.split(",").map(d => decodeArgument(d, nibble, otherNibble).value)
+    const values = data?.split(",").map(d => decodeArgument(d, nibble, otherNibble, oldA, oldB).value)
     if (fn === "AND") {
       const isOn = values.every(d => decodeValue(d, nibble, otherNibble) === 1) 
+      return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "CX") {
+      const isOn = toInt(otherNibble) < oldB
       return {operation: fn, value: toBit(isOn)}
     } else if (fn === "OR") {
       const isOn = values.some(d => decodeValue(d, nibble, otherNibble) === 1)
@@ -161,6 +167,9 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
       const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = otherNibble && toInt(otherNibble) > comparator 
       return {operation: fn, value: toBit(!!isOn)}
+    } else if (fn === "GTB") {
+      const isOn = otherNibble && (toInt(nibble) > toInt(otherNibble))
+      return {operation: fn, value: toBit(!!isOn)}
     } else if (fn === "GTE") {
       const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) >= comparator 
@@ -173,6 +182,9 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
       const comparator = decodeValue(values[0], nibble, otherNibble)
       const isOn = toInt(nibble) <= comparator 
       return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "LTB") {
+      const isOn = otherNibble && toInt(nibble) < toInt(otherNibble)
+      return {operation: fn, value: toBit(!!isOn)}
     } else if (fn === "BETWEEN") {
       const low = decodeValue(values[0], nibble, otherNibble)
       const high = decodeValue(values[1], nibble, otherNibble)
@@ -181,8 +193,13 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
     } else if (fn === "OUTSIDE") {
       const low = decodeValue(values[0], nibble, otherNibble)
       const high = decodeValue(values[1], nibble, otherNibble)
-      const isOn = toInt(nibble) < low && toInt(nibble) > high
+      const isOn = toInt(nibble) < low || toInt(nibble) > high
       return {operation: fn, value: toBit(isOn)}
+    } else if (fn === "OUTSIDEX") {
+      const low = decodeValue(values[0], nibble, otherNibble)
+      const high = decodeValue(values[1], nibble, otherNibble)
+      const isOn = otherNibble && (toInt(otherNibble) < low || toInt(otherNibble) > high)
+      return {operation: fn, value: toBit(!!isOn)}
     } else if (fn === "SHIFT") {
       // an empty SHIFT will copy the last bit from the nibble
       const value = data ? decodeValue(data[0], nibble, otherNibble): digit(nibble, 8)
@@ -204,7 +221,8 @@ export const decodeArgument = (argument: string, nibble: Nibble, otherNibble?: N
   }
 }
 
-export const displayTable = (history: History) => {
+export const displayTable = (history?: History) => {
+  if (!history) return
   const formattedTable = history.map((data) => {
     return {...data, 
       1: data.nibble[0], 
@@ -216,16 +234,21 @@ export const displayTable = (history: History) => {
   console.table(formattedTable, ["1","2","4","8"," ","n", "out", "operation", "argument", "carry"])
 }
 
-export const printProgram = (analysis: Analysis, rawProgram: string, short?: boolean) => {
+export const printProgram = (analysis: Analysis | null, rawProgram: string, short?: boolean) => {
   if (short) {
-    console.log(rawProgram.replace(/[^x*\d- ]/g,"").replace(" ","\t"))
+    console.log(rawProgram.replace(/[^,x*\d- ]/g,"").replace(" ","\t"))
   } else {
     console.log("")
     console.log(`PROGRAM: ${rawProgram}`)
   }
-  if (analysis.preHistory.length && !short) {
+  if (analysis?.preHistory.length && !short) {
     displayTable(analysis.preHistory)
     console.log("--------------------------------------")
   }
-  if (!short) displayTable(analysis.mainHistory)
+  if (!short) {
+    displayTable(analysis?.mainHistory)
+    if (analysis?.inANDCarries) console.log("ANDCarries: ", analysis?.andcarries)
+    if (analysis?.inORCarries) console.log("ORCarries: ", analysis?.orcarries)
+    if (analysis?.inXORCarries) console.log("XORCarries: ", analysis?.xorcarries)
+  }
 }
