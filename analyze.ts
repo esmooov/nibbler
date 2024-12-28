@@ -75,7 +75,11 @@ export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
     case "sonClave":
       return checkForSonClave;
+    case "son":
+      return checkForSonClave;
     case "rumbaClave":
+      return checkForRumbaClave;
+    case "rumba":
       return checkForRumbaClave;
     case "shiko":
       return checkForShiko;
@@ -98,8 +102,14 @@ export const printAnalysis = (
   const matchIsFound = analysis.inAny;
   const loopMatchesStrictLength =
     !opts["strictLength"] || opts["strictLength"] === analysis.loopLength;
+  const success = analysis.inAny && loopMatchesStrictLength;
 
-  if ((analysis.inAny && loopMatchesStrictLength) || opts["debug"]) {
+  if (success && opts["tiny"]) {
+    console.log(program.vars);
+    return;
+  }
+
+  if (success || opts["debug"]) {
     console.log("");
     console.log(program.description);
     if (opts["debug"]) {

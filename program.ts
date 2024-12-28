@@ -282,11 +282,13 @@ export const nibble = (n: number): NibbleTransformer<Nibble> => {
 export type Program = {
   (nibbleA: Nibble, nibbleB: Nibble): [Update, Update];
   description: string;
+  vars?: Record<"string", number>;
 };
 
 export const makeProgram = (
   transformerA: NibbleTransformer<Update>,
-  transformerB: NibbleTransformer<Update>
+  transformerB: NibbleTransformer<Update>,
+  vars?: Record<string, number>
 ): Program => {
   const fn = (nibbleA: Nibble, nibbleB: Nibble) => {
     const updateA = transformerA(nibbleA, nibbleB);
@@ -294,5 +296,6 @@ export const makeProgram = (
     return [updateA, updateB] as [Update, Update];
   };
   fn.description = `A: (${transformerA.description})\nB: (${transformerB.description})`;
+  fn.vars = vars;
   return fn;
 };

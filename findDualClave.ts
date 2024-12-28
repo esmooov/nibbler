@@ -1,6 +1,6 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { runNibblers, toNibble } from "./simulate";
+import { BitIndex, runNibblers, toNibble } from "./simulate";
 import {
   add,
   and,
@@ -18,128 +18,53 @@ import {
 } from "./program";
 import { analyze, printAnalysis, processTest } from "./analyze";
 
-const bits = [1, 2, 4, 8];
+const bits: Array<BitIndex> = [1, 2, 4, 8];
 
-const args = yargs(hideBin(process.argv)).parse();
+const args = yargs(hideBin(process.argv)).string("test").parse();
 
-const execute = (program: Program) => {
+const execute = (program: Program, testName: string) => {
   const state = runNibblers(program, args["iterations"]);
-  const test = processTest(args["test"]);
+  const test = processTest(testName);
   const analysis = analyze(state, test);
   printAnalysis(analysis, program, args);
 };
 
-// for (let a = -15; a < 16; a++) {
-//   for (let b = -15; b < 16; b++) {
-//     for (let c = -15; c < 16; c++) {
-//         const programA = `CHOICE CX[] ${a} ${b}`
-//         const programB = `CONSTANT ${c}`
-//         execute(programA, programB)
-//     }
-//   }
-// }
-
 // for (let a = 0; a < 16; a++) {
 //   for (let b = 0; b < 16; b++) {
 //     for (let c = 0; c < 16; c++) {
-//       bits.forEach((bitA,i) => {
-//         bits.forEach(bitB => {
+//       bits.forEach((bitA, i) => {
+//         bits.forEach((bitB) => {
+//           const program = makeProgram(
+//             choice(and(x(bitA), x(bitB)), xor(other(), nibble(a)), add(b)),
+//             constant(add(c)),
+//             {
+//               a,
+//               b,
+//               c,
+//               bitA,
+//               bitB,
+//             }
+//           );
+//           execute(program);
+//         });
+//       });
+//     }
+//   }
+// }
 
-// prettier-ignore
-for (let a = 0; a < 16; a++) {
-  for (let b = 0; b < 16; b++) {
+const tests = args["test"] || "";
+
+tests.split(",").forEach((test) => {
+  console.log(`TEST ${test}:`);
+  for (let a = 0; a < 16; a++) {
     const program = makeProgram(
-      constant(add(xor(other(), nibble(a)))),
-      constant(
-        add(b)
-      )
-    )
-    execute(program);
+      choice(and(x(4), x(8)), add(11), add(3)),
+      constant(add(a)),
+      {
+        a,
+      }
+    );
+    execute(program, test);
   }
-}
-// const program = makeProgram(
-//   constant(
-//     add(other())
-//   ),
-//   constant(
-//     add(7)
-//   )
-// )
-
-//         })
-//       })
-//     }
-//   }
-// }
-
-// for (let a = -15; a < 16; a++) {
-//   for (let b = -15; b < 16; b++) {
-//     bits.forEach(bitA => {
-//       const programA = `CHOICE XOR[x${bitA}] SHIFT[x${bitA}] ${a}`
-//       const programB = `CONSTANT ${b}`
-//       execute(programA, programB)
-//     })
-//   }
-// }
-
-// for (let a = -15; a < 16; a++) {
-//   for (let b = -15; b < 16; b++) {
-//     const cleanA = a < 0 ? a : `+${a}`
-//     const cleanB = b < 0 ? b : `+${b}`
-//     bits.forEach(ba => {
-//       const program = `CHOICE *${ba} ${cleanA} ${cleanB}`
-//       execute(program)
-//     })
-//   }
-// }
-
-// for (let a = -15; a < 16; a++) {
-//   for (let b = -15; b < 16; b++) {
-//     const cleanA = a < 0 ? a : `+${a}`
-//     const cleanB = b < 0 ? b : `+${b}`
-//       const program = `CHOICE EVEN[] ${cleanA} ${cleanB}`
-//       execute(program)
-//   }
-// }
-
-// bits.forEach(ba => {
-//   bits.forEach(bb => {
-//     const program = `CHOICE XOR[*${ba},*${bb}] ${ba} ${bb}`
-//     execute(program)
-//   })
-// })
-
-// bits.forEach(ba => {
-//   bits.forEach(bb => {
-//     bits.forEach(bc => {
-//       bits.forEach(bd => {
-//         const program = `CHOICE OR[*${ba},*${bb}] SHIFT[*${bc}] SHIFT[*${bd}]`
-//         execute(program)
-//       })
-//     })
-//   })
-// })
-
-// for (let a = -15; a < 16; a++) {
-
-//   const cleanA = a < 0 ? a : `+${a}`
-//   bits.forEach(ba => {
-//     bits.forEach(bb => {
-//       bits.forEach(bc => {
-//         const program = `CHOICE AND[*${ba},*${bb}] ${cleanA} SHIFT[*${bc}]`
-//         execute(program)
-//       })
-//     })
-//   })
-// }
-
-// for (let a = -15; a < 16; a++) {
-//   for (let b = -15; b < 16; b++) {
-//     const cleanA = a < 0 ? a : `+${a}`
-//     const cleanB = b < 0 ? b : `+${b}`
-//     for (let c = 0; c < 16; c++) {
-//       const program = `CHOICE GTE[+${c}] ${cleanA} ${cleanB}`
-//       execute(program)
-//     }
-//   }
-// }
+  console.log("");
+});
