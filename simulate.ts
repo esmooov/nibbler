@@ -1,4 +1,4 @@
-import { isNull } from "lodash";
+import { isNull, isUndefined } from "lodash";
 import { Program } from "./program";
 
 export type Bit = 0 | 1;
@@ -51,6 +51,11 @@ export type Update = {
   description: string;
 };
 
+export type BitUpdate = {
+  value: Bit;
+  description: string;
+};
+
 type Entry = {
   nibbleA: Nibble;
   nibbleB: Nibble;
@@ -60,6 +65,7 @@ type Entry = {
   carryB: Bit;
   descriptionA: string;
   descriptionB: string;
+  aux: Bit | null;
 };
 
 export type History = Array<Entry>;
@@ -95,9 +101,10 @@ export const runNibblers = (
       state;
     if (isLooping) return state;
 
-    const [updateNibbleA, updateNibbleB] = program(nibbleA, nibbleB);
-    const nextNibbleA = updateNibbleA.value;
-    const nextNibbleB = updateNibbleB.value;
+    const { updateA, updateB, updateAux } = program(nibbleA, nibbleB);
+    const nextNibbleA = updateA.value;
+    const nextNibbleB = updateB.value;
+    const nextAux = updateAux?.value;
     const nextNA = toInt(nextNibbleA);
     const nextNB = toInt(nextNibbleB);
 
@@ -111,8 +118,9 @@ export const runNibblers = (
       NB,
       carryA,
       carryB,
-      descriptionA: updateNibbleA.description,
-      descriptionB: updateNibbleB.description,
+      descriptionA: updateA.description,
+      descriptionB: updateB.description,
+      aux: isUndefined(nextAux) ? null : nextAux,
     };
 
     const nextIsLooping = willStartLooping;

@@ -43,6 +43,7 @@ export type Analysis = {
     inANDCarries: boolean;
     inORCarries: boolean;
     inXORCarries: boolean;
+    inAux: boolean;
   };
   preHistory: History;
   mainHistory: History;
@@ -64,6 +65,9 @@ export const analyze = (state: State, test: Test, vars?: Vars): Analysis => {
   const inCarriesA = test(carriesA);
   const inCarriesB = test(carriesB);
 
+  const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
+  const inAux = test(auxValues);
+
   const xorcarries = zipWith(carriesA, carriesB, (a, b) => (a ^ b) as Bit);
   const inXORCarries = test(xorcarries);
   const orcarries = zipWith(carriesA, carriesB, (a, b) => (a | b) as Bit);
@@ -76,13 +80,19 @@ export const analyze = (state: State, test: Test, vars?: Vars): Analysis => {
     xorcarries,
     orcarries,
     inAny:
-      inCarriesA || inCarriesB || inXORCarries || inORCarries || inANDCarries,
+      inCarriesA ||
+      inCarriesB ||
+      inXORCarries ||
+      inORCarries ||
+      inANDCarries ||
+      inAux,
     testResults: {
       inCarriesA,
       inCarriesB,
       inANDCarries,
       inORCarries,
       inXORCarries,
+      inAux,
     },
     preHistory,
     mainHistory,
@@ -140,8 +150,10 @@ export const printAnalysis = (
       displayTable(analysis?.mainHistory);
     }
 
-    if (!opts["short"]) {
+    if (opts["short"]) {
       console.log(pickBy(analysis.testResults, (value) => value));
+    } else {
+      console.log(analysis.testResults);
     }
   }
 };
@@ -175,6 +187,9 @@ const displayTable = (history: History) => {
       },
       {
         name: "carryB",
+      },
+      {
+        name: "aux",
       },
     ],
   });
