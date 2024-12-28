@@ -2,6 +2,7 @@ import { Table } from "console-table-printer";
 import { pickBy, zipWith } from "lodash";
 import { Bit, entriesAreEqual, State, History } from "./simulate";
 import { Program } from "./program";
+import { Count } from "./meta";
 
 export const checkForSonClave = (queue: Array<Bit>): boolean => {
   return !!queue.join("").match(/1001001000101000/);
@@ -29,7 +30,27 @@ export const checkForGahu = (queue: Array<Bit>): boolean => {
 
 export type Test = (queue: Array<Bit>) => boolean;
 
-export const analyze = (state: State, test: Test) => {
+export type Vars = Record<string, number>;
+
+export type Analysis = {
+  andcarries: Array<Bit>;
+  xorcarries: Array<Bit>;
+  orcarries: Array<Bit>;
+  inAny: boolean;
+  testResults: {
+    inCarriesA: boolean;
+    inCarriesB: boolean;
+    inANDCarries: boolean;
+    inORCarries: boolean;
+    inXORCarries: boolean;
+  };
+  preHistory: History;
+  mainHistory: History;
+  loopLength: number;
+  vars: Vars;
+};
+
+export const analyze = (state: State, test: Test, vars?: Vars): Analysis => {
   const { history, isLooping } = state;
   const lastEntry = history.slice(-1)[0];
   const firstMatchedIdx = history.findIndex((e) =>
@@ -66,10 +87,9 @@ export const analyze = (state: State, test: Test) => {
     preHistory,
     mainHistory,
     loopLength: mainHistory.length,
+    vars: vars || {},
   };
 };
-
-export type Analysis = ReturnType<typeof analyze>;
 
 export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
@@ -162,4 +182,23 @@ const displayTable = (history: History) => {
     table.addRow({ ...entry, i });
   });
   table.printTable();
+};
+
+export const displayCount = (count: Count, skipTwos: boolean = false) => {
+  console.log("");
+  console.log("VARS: ", count.vars);
+  console.log("MATCHING ONE OFFS");
+  Object.entries(count.matchingOneOffs).forEach(([key, value]) => {
+    console.log(key);
+    console.table(value);
+  });
+
+  if (!skipTwos) {
+    console.log("MATCHING TWO OFFS");
+    Object.entries(count.matchingTwoOffs).forEach(([key, value]) => {
+      console.log(key);
+      console.table(value);
+    });
+  }
+  console.log("");
 };
