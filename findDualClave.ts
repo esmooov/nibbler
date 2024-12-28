@@ -6,6 +6,7 @@ import {
   and,
   choice,
   constant,
+  GT,
   makeProgram,
   nibble,
   not,
@@ -61,28 +62,24 @@ tests.forEach((test) => {
   //     }
   //   }
   // }
+  // const program = makeProgram(
+  //   choice(GT(own(), 8), add(1), add(2)),
+  //   constant(add(3))
+  // );
+  //execute(program, test);
   for (let a = 0; a < 16; a++) {
     for (let b = 0; b < 16; b++) {
       for (let c = 0; c < 16; c++) {
-        for (let d = 0; d < 16; d++) {
-          bits.forEach((bitA) => {
-            bits.forEach((bitB) => {
-              const program = makeProgram(
-                choice(xor(x(bitA), x(bitB)), add(a), add(b)),
-                choice(xor(x(bitA), x(bitB)), add(c), add(d)),
-                {
-                  a,
-                  b,
-                  c,
-                  d,
-                  bitA,
-                  bitB,
-                }
-              );
-              execute(program, test);
-            });
-          });
-        }
+        const program = makeProgram(
+          choice(GT(own(), other()), add(b), add(xor(nibble(c)))),
+          constant(add(c)),
+          {
+            a,
+            b,
+            c,
+          }
+        );
+        execute(program, test);
       }
     }
   }

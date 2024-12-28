@@ -223,6 +223,28 @@ export function not(
   );
 }
 
+export const GT = (
+  transformer: NibbleTransformer<Nibble>,
+  comparator: number | NibbleTransformer<Nibble>
+): NibbleTransformer<Bit> => {
+  const fn = (nibble, otherNibble) => {
+    const n = transformer(nibble, otherNibble);
+    if (typeof comparator === "number") {
+      return toBit(toInt(n) > comparator);
+    } else {
+      return toBit(toInt(n) > toInt(comparator(nibble, otherNibble)));
+    }
+  };
+
+  if (typeof comparator === "number") {
+    fn.description = `${transformer.description} > ${comparator}`;
+  } else {
+    fn.description = `${transformer.description} > ${comparator.description}`;
+  }
+  fn.type = TransformerType.Bit;
+  return fn as NibbleTransformer<Bit>;
+};
+
 export const n = (index: BitIndex): NibbleTransformer<Bit> => {
   const fn = (nibble, otherNibble) => {
     return digit(nibble, index);
