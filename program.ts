@@ -2,7 +2,6 @@ import {
   addBits,
   Bit,
   BitIndex,
-  BitUpdate,
   digit,
   Nibble,
   toBit,
@@ -15,33 +14,25 @@ enum TransformerType {
   Bit,
   Nibble,
   Update,
-  BitUpdate,
 }
 
-type NibbleTransformer<T extends Bit | Nibble | Update | BitUpdate> =
-  T extends Bit
-    ? {
-        (nibble: Nibble, otherNibble: Nibble): Bit;
-        type: TransformerType.Bit;
-        description?: string;
-      }
-    : T extends Nibble
-    ? {
-        (nibble: Nibble, otherNibble: Nibble): Nibble;
-        type: TransformerType.Nibble;
-        description?: string;
-      }
-    : T extends Update
-    ? {
-        (nibble: Nibble, otherNibble: Nibble): Update;
-        type: TransformerType.Update;
-        description?: string;
-      }
-    : {
-        (nibble: Nibble, otherNibble: Nibble): BitUpdate;
-        type: TransformerType.BitUpdate;
-        description?: string;
-      };
+type NibbleTransformer<T extends Bit | Nibble | Update> = T extends Bit
+  ? {
+      (nibble: Nibble, otherNibble: Nibble): Bit;
+      type: TransformerType.Bit;
+      description?: string;
+    }
+  : T extends Nibble
+  ? {
+      (nibble: Nibble, otherNibble: Nibble): Nibble;
+      type: TransformerType.Nibble;
+      description?: string;
+    }
+  : {
+      (nibble: Nibble, otherNibble: Nibble): Update;
+      type: TransformerType.Update;
+      description?: string;
+    };
 
 export const resolve = <T>(
   value: T,
@@ -93,20 +84,6 @@ export const constant = (
   fn.description = `CONSTANT ${description(t)}`;
   fn.type = TransformerType.Update;
   return fn as NibbleTransformer<Update>;
-};
-
-export const aux = (
-  t: NibbleTransformer<Bit>
-): NibbleTransformer<BitUpdate> => {
-  const fn = (nibble, otherNibble) => {
-    return {
-      value: t(nibble, otherNibble),
-      description: `${description(t)}`,
-    };
-  };
-  fn.description = `AUX: ${description(t)}`;
-  fn.type = TransformerType.BitUpdate;
-  return fn as NibbleTransformer<BitUpdate>;
 };
 
 const makeLogicTransformer = (
@@ -297,6 +274,18 @@ export const add = (
   return fn as NibbleTransformer<Nibble>;
 };
 
+export const shift = (
+  bit: NibbleTransformer<Bit> | Bit
+): NibbleTransformer<Nibble> => {
+  const fn = (nibble, otherNibble) => {
+    const newBit = resolve(bit, nibble, otherNibble);
+    return [newBit, ...nibble.slice(0, 3)];
+  };
+  fn.description = `Shift ${description(bit)}`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
 export const own = (): NibbleTransformer<Nibble> => {
   const fn = (nibble) => {
     return nibble;
@@ -324,29 +313,44 @@ export const nibble = (n: number): NibbleTransformer<Nibble> => {
   return fn as NibbleTransformer<Nibble>;
 };
 
+export type BitCalculator = {
+  ({
+    nibbleA,
+    nibbleB,
+    carryA,
+    carryB,
+  }: {
+    nibbleA: Nibble;
+    nibbleB: Nibble;
+    carryA: Bit;
+    carryB: Bit;
+  }): Bit;
+  description: string;
+};
+
 export type Program = {
   (nibbleA: Nibble, nibbleB: Nibble): {
     updateA: Update;
     updateB: Update;
-    updateAux: BitUpdate | null;
   };
   description: string;
   vars?: Record<"string", number>;
+  updateAux?: BitCalculator;
 };
 
 export const makeProgram = (
   transformerA: NibbleTransformer<Update>,
   transformerB: NibbleTransformer<Update>,
   vars?: Record<string, number>,
-  auxTransformer?: NibbleTransformer<BitUpdate>
+  auxTransformer?: BitCalculator
 ): Program => {
   const fn = (nibbleA: Nibble, nibbleB: Nibble) => {
     const updateA = transformerA(nibbleA, nibbleB);
     const updateB = transformerB(nibbleB, nibbleA);
-    const updateAux = auxTransformer ? auxTransformer(nibbleA, nibbleB) : null;
-    return { updateA, updateB, updateAux };
+    return { updateA, updateB };
   };
   fn.description = `A: (${transformerA.description})\nB: (${transformerB.description})\nAUX: (${auxTransformer?.description})`;
   fn.vars = vars;
+  fn.updateAux = auxTransformer;
   return fn;
 };

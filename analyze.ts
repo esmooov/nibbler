@@ -51,7 +51,12 @@ export type Analysis = {
   vars: Vars;
 };
 
-export const analyze = (state: State, test: Test, vars?: Vars): Analysis => {
+export const analyze = (
+  state: State,
+  test: Test,
+  vars?: Vars,
+  args?: any
+): Analysis => {
   const { history, isLooping } = state;
   const lastEntry = history.slice(-1)[0];
   const firstMatchedIdx = history.findIndex((e) =>
@@ -75,17 +80,20 @@ export const analyze = (state: State, test: Test, vars?: Vars): Analysis => {
   const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
   const inANDCarries = test(andcarries);
 
-  return {
-    andcarries,
-    xorcarries,
-    orcarries,
-    inAny:
-      inCarriesA ||
+  const inAny = args["limitToAux"]
+    ? inAux
+    : inCarriesA ||
       inCarriesB ||
       inXORCarries ||
       inORCarries ||
       inANDCarries ||
-      inAux,
+      inAux;
+
+  return {
+    andcarries,
+    xorcarries,
+    orcarries,
+    inAny,
     testResults: {
       inCarriesA,
       inCarriesB,
@@ -142,7 +150,7 @@ export const printAnalysis = (
   if (success || opts["debug"]) {
     console.log("");
     console.log(program.description);
-    if (opts["debug"]) {
+    if (opts["debug"] || opts["debugSuccess"]) {
       if (analysis?.preHistory.length) {
         displayTable(analysis.preHistory);
         console.log("--------------------------------------");

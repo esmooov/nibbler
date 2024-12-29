@@ -101,15 +101,23 @@ export const runNibblers = (
       state;
     if (isLooping) return state;
 
-    const { updateA, updateB, updateAux } = program(nibbleA, nibbleB);
+    const { updateA, updateB } = program(nibbleA, nibbleB);
     const nextNibbleA = updateA.value;
     const nextNibbleB = updateB.value;
-    const nextAux = updateAux?.value;
     const nextNA = toInt(nextNibbleA);
     const nextNB = toInt(nextNibbleB);
 
     const carryA = nextNA < NA ? 1 : 0;
     const carryB = nextNB < NB ? 1 : 0;
+
+    const nextAux = program.updateAux
+      ? program.updateAux({
+          nibbleA: nextNibbleA,
+          nibbleB: nextNibbleB,
+          carryA,
+          carryB,
+        })
+      : null;
 
     const entry: Entry = {
       nibbleA,
@@ -120,7 +128,7 @@ export const runNibblers = (
       carryB,
       descriptionA: updateA.description,
       descriptionB: updateB.description,
-      aux: isUndefined(nextAux) ? null : nextAux,
+      aux: nextAux,
     };
 
     const nextIsLooping = willStartLooping;

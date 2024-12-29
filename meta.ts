@@ -1,4 +1,4 @@
-import { without, zip } from "lodash";
+import { omit, without, zip } from "lodash";
 import { Analysis, Vars } from "./analyze";
 
 type Matches = Record<string, Array<Vars>>;
@@ -52,8 +52,8 @@ export const meta = (
 };
 
 const calculateNearness = (a: Analysis, b: Analysis): [boolean, boolean] => {
-  const rawAVars = Object.values(a.vars);
-  const rawBVars = Object.values(b.vars);
+  const rawAVars = Object.values(omit(a.vars, "test"));
+  const rawBVars = Object.values(omit(b.vars, "test"));
 
   if (rawAVars.length === 0 || rawBVars.length === 0) return [false, false];
   const varPairs = zip(rawAVars, rawBVars);
