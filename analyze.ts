@@ -142,7 +142,7 @@ export const printAnalysis = (
     !opts["strictLength"] || opts["strictLength"] === analysis.loopLength;
   const success = analysis.inAny && loopMatchesStrictLength;
 
-  if (success && opts["tiny"]) {
+  if (success && opts["tiny"] && !opts["debugSuccess"]) {
     console.log(program.vars);
     return;
   }

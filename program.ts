@@ -286,6 +286,18 @@ export const shift = (
   return fn as NibbleTransformer<Nibble>;
 };
 
+export const complement = (
+  n: NibbleTransformer<Nibble>
+): NibbleTransformer<Nibble> => {
+  const fn = (nibble, otherNibble) => {
+    const value = resolve(n, nibble, otherNibble);
+    return toNibble(toInt(value) ^ 15);
+  };
+  fn.description = `Complement ${description(n)}`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
 export const twosComplement = (
   n: NibbleTransformer<Nibble>
 ): NibbleTransformer<Nibble> => {

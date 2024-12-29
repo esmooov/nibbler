@@ -6,6 +6,7 @@ import {
   and,
   BitCalculator,
   choice,
+  complement,
   constant,
   GT,
   makeProgram,
@@ -44,13 +45,16 @@ const tests = (args["test"] || "").split(",");
 fuzz(
   {
     a: range(0, 15),
+    c: range(0, 15),
+    bitA: bits,
+    bitB: bits,
     test: tests,
   },
   (vars) => {
-    const { a, test } = vars;
+    const { a, c, bitA, bitB, test } = vars;
     const program = makeProgram(
-      choice(GT(own(), other()), add(twosComplement(other())), add(a)),
-      constant(nibble(3)),
+      choice(not(xor(x(bitA), x(bitB))), add(xor(own(), other())), add(a)),
+      constant(add(c)),
       vars
     );
     execute(program, test);
