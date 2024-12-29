@@ -17,6 +17,7 @@ import {
   own,
   Program,
   shift,
+  twosComplement,
   x,
   xor,
 } from "./program";
@@ -43,22 +44,39 @@ const tests = (args["test"] || "").split(",");
 fuzz(
   {
     a: range(0, 15),
-    b: range(0, 15),
-    c: range(0, 15),
-    bitA: bits,
-    bitB: bits,
     test: tests,
   },
   (vars) => {
-    const { a, b, c, bitA, bitB, test } = vars;
+    const { a, test } = vars;
     const program = makeProgram(
-      choice(and(x(bitA), x(bitB)), add(a), add(b)),
-      constant(add(c)),
+      choice(GT(own(), other()), add(twosComplement(other())), add(a)),
+      constant(nibble(3)),
       vars
     );
     execute(program, test);
   }
 );
+
+// CANON: DO NOT CHANGE
+// fuzz(
+//   {
+//     a: range(0, 15),
+//     b: range(0, 15),
+//     c: range(0, 15),
+//     bitA: bits,
+//     bitB: bits,
+//     test: tests,
+//   },
+//   (vars) => {
+//     const { a, b, c, bitA, bitB, test } = vars;
+//     const program = makeProgram(
+//       choice(and(x(bitA), x(bitB)), add(a), add(b)),
+//       constant(add(c)),
+//       vars
+//     );
+//     execute(program, test);
+//   }
+// );
 
 const matches = meta(analyses, args["matchThreshold"], args["skipTwos"]);
 matches.forEach((match) => displayCount(match, args["skipTwos"]));
