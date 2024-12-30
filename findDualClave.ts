@@ -44,17 +44,18 @@ const execute = (program: Program, testName: string) => {
 const tests = (args["test"] || "").split(",");
 fuzz(
   {
-    a: range(0, 15),
-    c: range(0, 15),
-    bitA: bits,
-    bitB: bits,
+    // a: range(0, 15),
+    // c: range(0, 15),
+    // bitA: bits,
+    // bitB: bits,
     test: tests,
   },
   (vars) => {
-    const { a, c, bitA, bitB, test } = vars;
+    // const { a, c, bitA, bitB, test } = vars;
+    const { test } = vars;
     const program = makeProgram(
-      choice(not(xor(x(bitA), x(bitB))), add(xor(own(), other())), add(a)),
-      constant(add(c)),
+      constant(add(not(other()))),
+      constant(add(5)),
       vars
     );
     execute(program, test);

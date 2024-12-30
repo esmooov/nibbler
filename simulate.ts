@@ -46,11 +46,6 @@ export const digit = (n: Nibble, d: BitIndex) => {
   throw `${d} is not a legal digit`;
 };
 
-export type Update = {
-  value: Nibble;
-  description: string;
-};
-
 export type BitUpdate = {
   value: Bit;
   description: string;
@@ -122,12 +117,12 @@ export const runNibblers = (
     const entry: Entry = {
       nibbleA,
       nibbleB,
+      descriptionA: updateA.description,
+      descriptionB: updateB.description,
       NA,
       NB,
       carryA,
       carryB,
-      descriptionA: updateA.description,
-      descriptionB: updateB.description,
       aux: nextAux,
     };
 
