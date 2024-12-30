@@ -14,6 +14,53 @@ export const meta = (
   skipTwos: boolean = false
 ) => {
   const tests = Object.keys(analyses);
+  const totalTests = tests.length;
+  const counts = tests.reduce((oldCounts, test, i) => {
+    if (i > 0 && matchThreshold === totalTests - 1) {
+      return oldCounts;
+    }
+    const otherTests = without(tests, test);
+    const currentAnalyses = analyses[test];
+    const newCounts = currentAnalyses.reduce((counts, analysis) => {
+      const [oneMatches, twoMatches] = otherTests.reduce(
+        ([oneMatches, twoMatches], otherTest) => {
+          const otherAnalyses = analyses[otherTest];
+          const [newOneVars, newTwoVars] = otherAnalyses.reduce(
+            ([oneVars, twoVars], otherAnalysis) => {
+              const [withinOne, withinTwo] = calculateNearness(
+                analysis,
+                otherAnalysis
+              );
+              if (withinOne) oneVars.push(otherAnalysis.vars);
+              if (withinTwo) twoVars.push(otherAnalysis.vars);
+              return [oneVars, twoVars];
+            },
+            [[], []] as [Array<Vars>, Array<Vars>]
+          );
+          oneMatches[otherTest] = newOneVars;
+          twoMatches[otherTest] = newTwoVars;
+          return [oneMatches, twoMatches];
+        },
+        [{}, {}] as [Matches, Matches]
+      );
+      counts.push({
+        vars: analysis.vars,
+        matchingOneOffs: oneMatches,
+        matchingTwoOffs: twoMatches,
+      });
+      return counts;
+    }, [] as Array<Count>);
+    return [...oldCounts, ...newCounts];
+  }, [] as Array<Count>);
+  return filterByThreshold(counts, matchThreshold, skipTwos);
+};
+
+export const metaOld = (
+  analyses: Record<string, Array<Analysis>>,
+  matchThreshold: number = 1,
+  skipTwos: boolean = false
+) => {
+  const tests = Object.keys(analyses);
   const counts = tests.reduce((oldCounts, test) => {
     const otherTests = without(tests, test);
     const currentAnalyses = analyses[test];

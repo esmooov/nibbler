@@ -68,7 +68,7 @@ export const analyze = (
   const carriesA = testHistory.map((entry) => entry.carryA);
   const carriesB = testHistory.map((entry) => entry.carryB);
   const inCarriesA = test(carriesA);
-  const inCarriesB = test(carriesB);
+  const inCarriesB = test(carriesB) && !args["skipCarriesB"];
 
   const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
   const inAux = test(auxValues);

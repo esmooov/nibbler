@@ -64,6 +64,30 @@ const description = (t: NibbleTransformer<any> | number | Nibble): string => {
   return String(t);
 };
 
+type BitMap = {
+  1: number;
+  2: number;
+  4: number;
+  8: number;
+};
+export const mapOtherBits = (map: BitMap): NibbleTransformer<Nibble> => {
+  const fn = (nibble, otherNibble) => {
+    let addend = 0;
+    if (digit(otherNibble, 1)) addend += map[1];
+    if (digit(otherNibble, 2)) addend += map[2];
+    if (digit(otherNibble, 4)) addend += map[4];
+    if (digit(otherNibble, 8)) addend += map[8];
+    const newNibble = addBits(addend, nibble);
+    return {
+      value: newNibble,
+      description: `Add ${addend}`,
+    };
+  };
+  fn.description = `BITMAP ${map}`;
+  fn.type = TransformerType.Nibble;
+  return fn as NibbleTransformer<Nibble>;
+};
+
 export const choice = (
   test: NibbleTransformer<Bit>,
   left: NibbleTransformer<Nibble>,
