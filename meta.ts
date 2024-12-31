@@ -16,6 +16,7 @@ export const meta = (
   const tests = Object.keys(analyses);
   const totalTests = tests.length;
   const counts = tests.reduce((oldCounts, test, i) => {
+    console.log("Match test: ", test, ". Analyses: ", analyses[test].length);
     if (i > 0 && matchThreshold === totalTests - 1) {
       return oldCounts;
     }

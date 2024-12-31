@@ -143,7 +143,10 @@ export const printAnalysis = (
   const success = analysis.inAny && loopMatchesStrictLength;
 
   if (success && opts["tiny"] && !opts["debugSuccess"]) {
-    console.log(program.vars);
+    console.log(
+      program.vars,
+      `CA: ${analysis.testResults.inCarriesA} CB: ${analysis.testResults.inCarriesB}`
+    );
     return;
   }
 

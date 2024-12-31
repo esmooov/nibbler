@@ -47,7 +47,11 @@ function resolve<T extends Bit | Nibble>(
   value: NibbleTransformer<T>,
   nibble: Nibble,
   otherNibble: Nibble
-): T extends Bit ? Update<Bit> : Update<Nibble>;
+): T extends Bit
+  ? Update<Bit>
+  : T extends Nibble
+  ? Update<Nibble>
+  : Update<number>;
 function resolve(value, nibble, otherNibble) {
   if (typeof value === "function") {
     return value(nibble, otherNibble);
@@ -325,12 +329,22 @@ export const x = (index: BitIndex): NibbleTransformer<Bit> => {
 };
 
 export const add = (
-  addend: number | Nibble | NibbleTransformer<Nibble>
+  addend: number | Nibble | NibbleTransformer<Nibble>,
+  transformer?: number | Nibble | NibbleTransformer<Nibble>
 ): NibbleTransformer<Nibble> => {
   const fn = (nibble, otherNibble) => {
     const resolvedAddend = resolve(addend as any, nibble, otherNibble);
-    const value = addBits(nibble, resolvedAddend.value);
-    return { value, description: `Add ${resolvedAddend.description}` };
+    const transformerUpdate =
+      transformer && resolve(transformer as any, nibble, otherNibble);
+    const value = transformerUpdate ? transformerUpdate.value : nibble;
+    const innerDescription = transformerUpdate
+      ? transformerUpdate.description
+      : `Self`;
+    const result = addBits(value, resolvedAddend.value);
+    return {
+      value: result,
+      description: `Add (${resolvedAddend.description} to ${innerDescription})`,
+    };
   };
   fn.description = `Add ${description(addend)}`;
   fn.type = TransformerType.Nibble;
@@ -364,12 +378,12 @@ export const complement = (
 };
 
 export const twosComplement = (
-  n: NibbleTransformer<Nibble>
+  n: NibbleTransformer<Nibble> | number
 ): NibbleTransformer<Nibble> => {
   const fn = (nibble, otherNibble) => {
-    const v = resolve(n, nibble, otherNibble);
-    const value = toNibble(toInt(v.value) ^ (15 + 1));
-    return { value, description: String(v.description) };
+    const v = resolve(n as any, nibble, otherNibble);
+    const value = toNibble((toInt(v.value) ^ 15) + 1);
+    return { value, description: String(toInt(value)) };
   };
   fn.description = `Two's Complement ${description(n)}`;
   fn.type = TransformerType.Nibble;
@@ -415,7 +429,7 @@ export type BitCalculator = {
     carryA: Bit;
     carryB: Bit;
   }): Bit;
-  description: string;
+  description?: string;
 };
 
 export type Program = {

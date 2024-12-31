@@ -36,7 +36,9 @@ const execute = (program: Program, testName: string) => {
   const test = processTest(testName);
   const analysis = analyze(state, test, program.vars, args);
   if (!analyses[testName]) analyses[testName] = [];
-  if (analysis.inAny) {
+  const loopMatchesStrictLength =
+    !args["strictLength"] || args["strictLength"] === analysis.loopLength;
+  if (analysis.inAny && loopMatchesStrictLength) {
     analyses[testName].push(analysis);
   }
   printAnalysis(analysis, program, args);
@@ -44,46 +46,43 @@ const execute = (program: Program, testName: string) => {
 
 const tests = (args["test"] || "").split(",");
 console.log(tests);
-// fuzz(
-//   {
-//     a: range(0, 15),
-//     b: range(0, 15),
-//     c: range(0, 15),
-//     d: range(0, 15),
-//     o: range(0, 15),
-//     test: tests,
-//   },
-//   (vars) => {
-//     const { a, b, c, d, o, test } = vars;
-//     const program = makeProgram(
-//       mapOtherBits({ 1: a, 2: b, 4: c, 8: d }),
-//       constant(add(o)),
-//       vars
-//     );
-//     execute(program, test);
-//   }
-// );
-
-// CANON: DO NOT CHANGE
 fuzz(
   {
     a: range(0, 15),
-    b: range(0, 15),
     c: range(0, 15),
-    bitA: bits,
-    bitB: bits,
     test: tests,
   },
   (vars) => {
-    const { a, b, c, bitA, bitB, test } = vars;
+    const { a, c, test } = vars;
     const program = makeProgram(
-      choice(and(x(bitA), x(bitB)), add(a), add(b)),
-      constant(add(c)),
+      choice(GT(own(), c - a), add(add(twosComplement(c), a)), add(a)),
+      constant(nibble(c)),
       vars
     );
     execute(program, test);
   }
 );
 
+// CANON: DO NOT CHANGE
+// fuzz(
+//   {
+//     a: range(0, 15),
+//     b: range(0, 15),
+//     c: range(0, 15),
+//     bitA: bits,
+//     bitB: bits,
+//     test: tests,
+//   },
+//   (vars) => {
+//     const { a, b, c, bitA, bitB, test } = vars;
+//     const program = makeProgram(
+//       choice(and(x(bitA), x(bitB)), add(a), add(b)),
+//       constant(add(c)),
+//       vars
+//     );
+//     execute(program, test);
+//   }
+// );
+console.log("Beginning matching");
 const matches = meta(analyses, args["matchThreshold"], args["skipTwos"]);
 matches.forEach((match) => displayCount(match, args["skipTwos"]));
