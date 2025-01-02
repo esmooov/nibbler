@@ -308,6 +308,37 @@ export const GT = (
   return fn as NibbleTransformer<Bit>;
 };
 
+export const between = (
+  transformer: NibbleTransformer<Nibble>,
+  low: number | NibbleTransformer<Nibble>,
+  high: number | NibbleTransformer<Nibble>
+): NibbleTransformer<Bit> => {
+  const fn = (nibble, otherNibble) => {
+    const n = transformer(nibble, otherNibble).value;
+    const isGreater =
+      typeof low === "number"
+        ? toInt(n) > low
+        : toInt(n) > toInt(low(nibble, otherNibble).value);
+    const isLesser =
+      typeof high === "number"
+        ? toInt(n) < high
+        : toInt(n) < toInt(high(nibble, otherNibble).value);
+    const isBetween = isGreater && isLesser;
+    return {
+      value: toBit(isBetween),
+      description: isBetween
+        ? `Is between ${description(low)} and ${description(high)}`
+        : `Is NOT between ${description(low)} and ${description(high)}`,
+    };
+  };
+
+  fn.description = `${description(transformer)} IS BETWEEN (${description(
+    low
+  )} and ${description(high)})`;
+  fn.type = TransformerType.Bit;
+  return fn as NibbleTransformer<Bit>;
+};
+
 export const n = (index: BitIndex): NibbleTransformer<Bit> => {
   const fn = (nibble, otherNibble) => {
     const value = digit(nibble, index);

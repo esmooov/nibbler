@@ -28,11 +28,15 @@ export const checkForGahu = (queue: Array<Bit>): boolean => {
   return !!queue.join("").match(/1001001000100010/);
 };
 
-export type Test = (queue: Array<Bit>) => boolean;
+export type Test = {
+  (queue: Array<Bit>): boolean;
+  testName?: string;
+};
 
 export type Vars = Record<string, number>;
 
 export type Analysis = {
+  testName?: string;
   andcarries: Array<Bit>;
   xorcarries: Array<Bit>;
   orcarries: Array<Bit>;
@@ -90,6 +94,7 @@ export const analyze = (
       inAux;
 
   return {
+    testName: test.testName,
     andcarries,
     xorcarries,
     orcarries,
@@ -162,9 +167,12 @@ export const printAnalysis = (
     }
 
     if (opts["short"]) {
-      console.log(pickBy(analysis.testResults, (value) => value));
+      console.log(
+        analysis.testName,
+        pickBy(analysis.testResults, (value) => value)
+      );
     } else {
-      console.log(analysis.testResults);
+      console.log(analysis.testName, analysis.testResults);
     }
   }
 };
