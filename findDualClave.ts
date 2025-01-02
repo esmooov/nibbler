@@ -48,39 +48,45 @@ const execute = (program: Program, testName: string) => {
 
 const tests = (args["test"] || "").split(",");
 console.log(tests);
-// fuzz(
-//   {
-//     a: range(5, 5),
-//     c: range(13, 13),
-//     test: tests,
-//   },
-//   (vars) => {
-//     const { a, c, test } = vars;
-//     const program = makeProgram(
-//       choice(between(own(), a - 1, c), add(a), add(add(twosComplement(c), a))),
-//       constant(nibble(c)),
-//       vars
-//     );
-//     execute(program, test);
-//   }
-// );
-
-// CANONICAL WORLD RHYTHM: DO NOT CHANGE
 fuzz(
   {
+    a: range(0, 15),
+    b: range(0, 15),
     c: range(0, 15),
+    bitA: bits,
     test: tests,
   },
   (vars) => {
-    const { c, test } = vars;
+    const { a, b, c, bitA, test } = vars;
     const program = makeProgram(
-      choice(and(x(4), x(8)), add(11), add(3)),
+      choice(x(bitA), add(a), add(b)),
       constant(add(c)),
       vars
     );
     execute(program, test);
   }
 );
+
+// CANONICAL WORLD RHYTHM: DO NOT CHANGE
+// fuzz(
+//   {
+//     a: range(0, 15),
+//     b: range(0, 15),
+//     c: range(0, 15),
+//     bitA: bits,
+//     bitB: bits,
+//     test: tests,
+//   },
+//   (vars) => {
+//     const { a, b, c, bitA, bitB, test } = vars;
+//     const program = makeProgram(
+//       choice(and(x(bitA), x(bitB)), add(a), add(b)),
+//       constant(add(c)),
+//       vars
+//     );
+//     execute(program, test);
+//   }
+// );
 
 // CANONICAL EUCLIDEAN
 // fuzz(

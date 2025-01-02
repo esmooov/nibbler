@@ -4,6 +4,20 @@ import { Bit, entriesAreEqual, State, History } from "./simulate";
 import { Program } from "./program";
 import { Count } from "./meta";
 
+// Equivalent to Tonada and Asaadua
+export const checkForSoli = (queue: Array<Bit>): boolean => {
+  return !!queue.join("").match(/101010101101/);
+};
+
+// Equivalent also to Bembe and Yoruba
+export const checkForTambu = (queue: Array<Bit>): boolean => {
+  return !!queue.join("").match(/101010110101/);
+};
+
+export const checkForSorsonet = (queue: Array<Bit>): boolean => {
+  return !!queue.join("").match(/111010101010/);
+};
+
 export const checkForSonClave = (queue: Array<Bit>): boolean => {
   return !!queue.join("").match(/1001001000101000/);
 };
@@ -26,6 +40,10 @@ export const checkForBossa = (queue: Array<Bit>): boolean => {
 
 export const checkForGahu = (queue: Array<Bit>): boolean => {
   return !!queue.join("").match(/1001001000100010/);
+};
+
+export const checkForSRGenerator = (queue: Array<Bit>): boolean => {
+  return !!queue.join("").match(/1101010111010101/);
 };
 
 export type Test = {
@@ -86,6 +104,8 @@ export const analyze = (
 
   const inAny = args["limitToAux"]
     ? inAux
+    : args["limitToA"]
+    ? inCarriesA
     : inCarriesA ||
       inCarriesB ||
       inXORCarries ||
@@ -132,6 +152,14 @@ export const processTest = (rawTest: string): Test => {
       return checkForBossa;
     case "gahu":
       return checkForGahu;
+    case "soli":
+      return checkForSoli;
+    case "tambu":
+      return checkForTambu;
+    case "sorsonet":
+      return checkForSorsonet;
+    case "srgen":
+      return checkForSRGenerator;
     default:
       return (queue) => !!queue.join("").match(rawTest);
   }
