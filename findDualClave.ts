@@ -24,7 +24,7 @@ import {
   x,
   xor,
 } from "./program";
-import { analyze, displayCount, printAnalysis, processTest } from "./analyze";
+import { analyze, displayCount, printAnalysis, processTest, processTestSet } from "./analyze";
 import { meta } from "./meta";
 import { bits, fuzz, range } from "./testUtils";
 
@@ -39,28 +39,30 @@ const execute = (program: Program, testName: string) => {
   const analysis = analyze(state, test, program.vars, args);
   if (!analyses[testName]) analyses[testName] = [];
   const loopMatchesStrictLength =
-    !args["strictLength"] || args["strictLength"] === analysis.loopLength;
+    !args["strictLength"] || args["strictLength"] % analysis.loopLength === 0;
   if (analysis.inAny && loopMatchesStrictLength) {
     analyses[testName].push(analysis);
   }
   printAnalysis(analysis, program, args);
 };
 
-const tests = (args["test"] || "").split(",");
+let tests = (args["test"] || "").split(",");
+if (args["testSet"]) tests = processTestSet(args["testSet"])
 console.log(tests);
 fuzz(
   {
     a: range(0, 15),
-    b: range(0, 15),
-    c: range(0, 15),
     bitA: bits,
+    bitB: bits,
+    bitC: bits,
+    bitD: bits,
     test: tests,
   },
   (vars) => {
-    const { a, b, c, bitA, test } = vars;
+    const { a, bitA, bitB, bitC, bitD, test } = vars;
     const program = makeProgram(
-      choice(x(bitA), add(a), add(b)),
-      constant(add(c)),
+      choice(GT(own(), a), shift(not(n(bitA))), shift(not(n(bitB)))),
+      constant(add(0)),
       vars
     );
     execute(program, test);

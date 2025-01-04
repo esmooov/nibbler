@@ -1,5 +1,5 @@
 import { Table } from "console-table-printer";
-import { pickBy, zipWith } from "lodash";
+import { flatten, pickBy, zipWith } from "lodash";
 import { Bit, entriesAreEqual, State, History } from "./simulate";
 import { Program } from "./program";
 import { Count } from "./meta";
@@ -86,7 +86,7 @@ export const analyze = (
   );
   const preHistory = isLooping ? history.slice(0, firstMatchedIdx) : history;
   const mainHistory = isLooping ? history.slice(firstMatchedIdx, -1) : [];
-  const testHistory = [...mainHistory, ...mainHistory];
+  const testHistory = flatten(Array(10).fill(mainHistory));
   const carriesA = testHistory.map((entry) => entry.carryA);
   const carriesB = testHistory.map((entry) => entry.carryB);
   const inCarriesA = test(carriesA);
@@ -105,8 +105,8 @@ export const analyze = (
   const inAny = args["limitToAux"]
     ? inAux
     : args["limitToA"]
-    ? inCarriesA
-    : inCarriesA ||
+      ? inCarriesA
+      : inCarriesA ||
       inCarriesB ||
       inXORCarries ||
       inORCarries ||
@@ -133,6 +133,22 @@ export const analyze = (
     vars: vars || {},
   };
 };
+
+export const processTestSet = (rawTest: string) => {
+  if (rawTest === "twelves") return [
+    "100000000000",
+    "100000100000",
+    "100010001000",
+    "100100100100",
+    "100101010010",
+    "101010101010",
+    "101101010110",
+    "101101101101",
+    "101110111011",
+    "101111101111",
+    "101111111111"
+  ]
+}
 
 export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
@@ -170,9 +186,8 @@ export const printAnalysis = (
   program: Program,
   opts: Record<string, any>
 ) => {
-  const matchIsFound = analysis.inAny;
   const loopMatchesStrictLength =
-    !opts["strictLength"] || opts["strictLength"] === analysis.loopLength;
+    !opts["strictLength"] || opts["strictLength"] % analysis.loopLength === 0;
   const success = analysis.inAny && loopMatchesStrictLength;
 
   if (success && opts["tiny"] && !opts["debugSuccess"]) {

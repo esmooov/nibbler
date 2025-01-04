@@ -23,15 +23,15 @@ type Update<T extends Bit | Nibble | number> = T extends Bit
 
 type NibbleTransformer<T extends Bit | Nibble> = T extends Bit
   ? {
-      (nibble: Nibble, otherNibble: Nibble): Update<Bit>;
-      type: TransformerType.Bit;
-      description?: string;
-    }
+    (nibble: Nibble, otherNibble: Nibble): Update<Bit>;
+    type: TransformerType.Bit;
+    description?: string;
+  }
   : {
-      (nibble: Nibble, otherNibble: Nibble): Update<Nibble>;
-      type: TransformerType.Nibble;
-      description?: string;
-    };
+    (nibble: Nibble, otherNibble: Nibble): Update<Nibble>;
+    type: TransformerType.Nibble;
+    description?: string;
+  };
 
 function resolve(
   value: number,
@@ -105,14 +105,12 @@ export const choice = (
 
     return {
       value,
-      description: `${isOn ? "⬅" : "⮕"} (${
-        update.description
-      }): ${description}`,
+      description: `${isOn ? "⬅" : "⮕"} (${update.description
+        }): ${description}`,
     };
   };
-  fn.description = `CHOOSE ${description(test)}: (${left.description}) OR (${
-    right.description
-  }`;
+  fn.description = `CHOOSE ${description(test)}: (${left.description}) OR (${right.description
+    }`;
   fn.type = TransformerType.Nibble;
   return fn as NibbleTransformer<Nibble>;
 };
@@ -273,8 +271,8 @@ export function not(
 ): NibbleTransformer<Bit> | NibbleTransformer<Nibble> {
   return makeLogicTransformer(
     [transformer] as
-      | Array<NibbleTransformer<Bit>>
-      | Array<NibbleTransformer<Nibble>>,
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>,
     (updates) => {
       return toBit(updates[0].value !== 1);
     },
