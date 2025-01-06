@@ -261,21 +261,21 @@ export function xor(
 }
 
 export function not(
-  transformer: NibbleTransformer<Bit>
+  ...transformers: Array<NibbleTransformer<Bit>>
 ): NibbleTransformer<Bit>;
 export function not(
-  transformer: NibbleTransformer<Nibble>
+  ...transformers: Array<NibbleTransformer<Nibble>>
 ): NibbleTransformer<Nibble>;
 export function not(
-  transformer: NibbleTransformer<Bit> | NibbleTransformer<Nibble>
+  ...transformers:
+    | Array<NibbleTransformer<Bit>>
+    | Array<NibbleTransformer<Nibble>>
 ): NibbleTransformer<Bit> | NibbleTransformer<Nibble> {
   return makeLogicTransformer(
-    [transformer] as
+    transformers as
     | Array<NibbleTransformer<Bit>>
     | Array<NibbleTransformer<Nibble>>,
-    (updates) => {
-      return toBit(updates[0].value !== 1);
-    },
+    (updates) => toBit(!updates.some((update) => update.value === 1)),
     (updates) => {
       return toNibble(~toInt(updates[0].value));
     },

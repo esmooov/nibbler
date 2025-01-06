@@ -107,11 +107,11 @@ export const runNibblers = (
 
     const nextAux = program.updateAux
       ? program.updateAux({
-          nibbleA: nextNibbleA,
-          nibbleB: nextNibbleB,
-          carryA,
-          carryB,
-        })
+        nibbleA: nextNibbleA,
+        nibbleB: nextNibbleB,
+        carryA,
+        carryB,
+      })
       : null;
 
     const entry: Entry = {
@@ -146,4 +146,4 @@ export const runNibblers = (
 };
 
 export const entriesAreEqual = (a: Entry, b: Entry) =>
-  a.NA === b.NA && a.NB === b.NB;
+  a.NA === b.NA && a.NB === b.NB && a.aux === b.aux;

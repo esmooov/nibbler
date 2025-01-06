@@ -86,7 +86,8 @@ export const analyze = (
   );
   const preHistory = isLooping ? history.slice(0, firstMatchedIdx) : history;
   const mainHistory = isLooping ? history.slice(firstMatchedIdx, -1) : [];
-  const testHistory = flatten(Array(10).fill(mainHistory));
+  const reps = args["strictOrder"] ? 1 : 10
+  const testHistory = flatten(Array(reps).fill(mainHistory));
   const carriesA = testHistory.map((entry) => entry.carryA);
   const carriesB = testHistory.map((entry) => entry.carryB);
   const inCarriesA = test(carriesA);

@@ -32,9 +32,21 @@ const args = yargs(hideBin(process.argv)).string("test").parse();
 
 const analyses = {};
 
+let on = 0
+const everyOther: BitCalculator = ({ carryA }) => {
+  if (carryA === 1) {
+    on = on ^ 1
+    return (carryA ^ on) as Bit
+  } else {
+    return 0
+  }
+}
+everyOther.description = "Every other carry bit"
+
 const execute = (program: Program, testName: string) => {
   const state = runNibblers(program, args["iterations"]);
   const test = processTest(testName);
+  // TODO: fix looping tests
   test.testName = testName;
   const analysis = analyze(state, test, program.vars, args);
   if (!analyses[testName]) analyses[testName] = [];
@@ -52,18 +64,18 @@ console.log(tests);
 fuzz(
   {
     a: range(0, 15),
+    b: range(0, 15),
+    c: range(0, 15),
     bitA: bits,
     bitB: bits,
-    bitC: bits,
-    bitD: bits,
     test: tests,
   },
   (vars) => {
-    const { a, bitA, bitB, bitC, bitD, test } = vars;
+    const { a, b, c, bitA, bitB, test } = vars;
     const program = makeProgram(
-      choice(GT(own(), a), shift(not(n(bitA))), shift(not(n(bitB)))),
-      constant(add(0)),
-      vars
+      choice(and(x(bitA), x(bitB)), add(a), add(b)),
+      constant(add(c)),
+      vars,
     );
     execute(program, test);
   }
