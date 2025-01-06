@@ -5,51 +5,30 @@ import { Program } from "./program";
 import { Count } from "./meta";
 
 // Equivalent to Tonada and Asaadua
-export const checkForSoli = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/101010101101/);
-};
+const soli = "101010101101"
 
 // Equivalent also to Bembe and Yoruba
-export const checkForTambu = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/101010110101/);
-};
+const tambu = "101010110101"
 
-export const checkForSorsonet = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/111010101010/);
-};
+const sorsonet = "111010101010"
 
-export const checkForSonClave = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1001001000101000/);
-};
+const sonClave = "1001001000101000"
+const rumbaClave = "1001000100101000"
+const shiko = "1000101000101000"
+const soukous = "1001001000110000"
+const bossa = "1001001000100100"
+const gahu = "1001001000100010"
+const SRGenerator = "1101010111010101"
 
-export const checkForRumbaClave = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1001000100101000/);
-};
-
-export const checkForShiko = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1000101000101000/);
-};
-
-export const checkForSoukous = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1001001000110000/);
-};
-
-export const checkForBossa = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1001001000100100/);
-};
-
-export const checkForGahu = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1001001000100010/);
-};
-
-export const checkForSRGenerator = (queue: Array<Bit>): boolean => {
-  return !!queue.join("").match(/1101010111010101/);
-};
 
 export type Test = {
-  (queue: Array<Bit>): boolean;
+  bits: string;
   testName?: string;
 };
+
+const evaluateTest = (test: Test, bits: Array<Bit>): boolean => {
+  return !!bits.join("").match(test.bits)
+}
 
 export type Vars = Record<string, number>;
 
@@ -70,6 +49,7 @@ export type Analysis = {
   preHistory: History;
   mainHistory: History;
   loopLength: number;
+  loopMatchesStrictLength: boolean;
   vars: Vars;
 };
 
@@ -86,24 +66,26 @@ export const analyze = (
   );
   const preHistory = isLooping ? history.slice(0, firstMatchedIdx) : history;
   const mainHistory = isLooping ? history.slice(firstMatchedIdx, -1) : [];
+  const loopLength = mainHistory.length
+  const loopMatchesStrictLength = test.bits.length % loopLength === 0
   const reps = args["strictOrder"] ? 1 : 10
   const testHistory = flatten(Array(reps).fill(mainHistory));
   const carriesA = testHistory.map((entry) => entry.carryA);
   const carriesB = testHistory.map((entry) => entry.carryB);
-  const inCarriesA = test(carriesA);
-  const inCarriesB = test(carriesB) && !args["skipCarriesB"];
+  const inCarriesA = evaluateTest(test, carriesA);
+  const inCarriesB = evaluateTest(test, carriesB) && !args["skipCarriesB"];
 
   const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
-  const inAux = test(auxValues);
+  const inAux = evaluateTest(test, auxValues);
 
   const xorcarries = zipWith(carriesA, carriesB, (a, b) => (a ^ b) as Bit);
-  const inXORCarries = test(xorcarries);
+  const inXORCarries = evaluateTest(test, xorcarries);
   const orcarries = zipWith(carriesA, carriesB, (a, b) => (a | b) as Bit);
-  const inORCarries = test(orcarries);
+  const inORCarries = evaluateTest(test, orcarries);
   const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
-  const inANDCarries = test(andcarries);
+  const inANDCarries = evaluateTest(test, andcarries);
 
-  const inAny = args["limitToAux"]
+  let inAny = args["limitToAux"]
     ? inAux
     : args["limitToA"]
       ? inCarriesA
@@ -130,7 +112,8 @@ export const analyze = (
     },
     preHistory,
     mainHistory,
-    loopLength: mainHistory.length,
+    loopLength,
+    loopMatchesStrictLength,
     vars: vars || {},
   };
 };
@@ -154,31 +137,31 @@ export const processTestSet = (rawTest: string) => {
 export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
     case "sonClave":
-      return checkForSonClave;
+      return { testName: "son clave", bits: sonClave }
     case "son":
-      return checkForSonClave;
+      return { testName: "son clave", bits: sonClave }
     case "rumbaClave":
-      return checkForRumbaClave;
+      return { testName: "rumba clave", bits: rumbaClave }
     case "rumba":
-      return checkForRumbaClave;
+      return { testName: "rumba clave", bits: rumbaClave }
     case "shiko":
-      return checkForShiko;
+      return { testName: "shiko", bits: shiko }
     case "soukous":
-      return checkForSoukous;
+      return { testName: "soukous", bits: soukous }
     case "bossa":
-      return checkForBossa;
+      return { testName: "bossa nova", bits: bossa }
     case "gahu":
-      return checkForGahu;
+      return { testName: "gahu", bits: gahu }
     case "soli":
-      return checkForSoli;
+      return { testName: "soli", bits: soli }
     case "tambu":
-      return checkForTambu;
+      return { testName: "tambu", bits: tambu }
     case "sorsonet":
-      return checkForSorsonet;
+      return { testName: "sorsonet", bits: sorsonet }
     case "srgen":
-      return checkForSRGenerator;
+      return { testName: "srgen", bits: SRGenerator }
     default:
-      return (queue) => !!queue.join("").match(rawTest);
+      return { bits: rawTest }
   }
 };
 
@@ -187,9 +170,7 @@ export const printAnalysis = (
   program: Program,
   opts: Record<string, any>
 ) => {
-  const loopMatchesStrictLength =
-    !opts["strictLength"] || opts["strictLength"] % analysis.loopLength === 0;
-  const success = analysis.inAny && loopMatchesStrictLength;
+  const success = analysis.inAny && analysis.loopMatchesStrictLength;
 
   if (success && opts["tiny"] && !opts["debugSuccess"]) {
     console.log(

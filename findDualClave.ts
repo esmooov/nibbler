@@ -50,9 +50,7 @@ const execute = (program: Program, testName: string) => {
   test.testName = testName;
   const analysis = analyze(state, test, program.vars, args);
   if (!analyses[testName]) analyses[testName] = [];
-  const loopMatchesStrictLength =
-    !args["strictLength"] || args["strictLength"] % analysis.loopLength === 0;
-  if (analysis.inAny && loopMatchesStrictLength) {
+  if (analysis.inAny && (analysis.loopMatchesStrictLength || !args["strictLength"])) {
     analyses[testName].push(analysis);
   }
   printAnalysis(analysis, program, args);
