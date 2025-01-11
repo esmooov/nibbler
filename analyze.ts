@@ -19,6 +19,11 @@ const soukous = "1001001000110000"
 const bossa = "1001001000100100"
 const gahu = "1001001000100010"
 const SRGenerator = "1101010111010101"
+const bemba = "100101010010"
+const columbia = "101001010100"
+const aka = "100101001010"
+const fume = "101010010100"
+const ewe = "100101010100"
 
 
 export type Test = {
@@ -132,6 +137,43 @@ export const processTestSet = (rawTest: string) => {
     "101111101111",
     "101111111111"
   ]
+
+  if (rawTest === "elevens") return [
+    "10000000000",
+    "10000010000",
+    "10001001000",
+    "10010100100",
+    "10010101010",
+    "10110101010",
+    "10110101101",
+    "10111011011",
+    "10111110111",
+    "10111111111"
+  ]
+
+  if (rawTest === "tens") return [
+    "1000000000",
+    "1000010000",
+    "1000100100",
+    "1001010010",
+    "1010101010",
+    "1011010110",
+    "1011101101",
+    "1011110111",
+    "1011111111"
+  ]
+
+  if (rawTest === "touissant") return [
+    "son", "rumba", "bossa", "soukous", "shiko", "gahu"
+  ]
+
+  if (rawTest === "touissant12") return ["aka", "fume"]
+
+  if (rawTest === "amenSnares") return [
+    "0000100101001001",
+    "0000100101000010",
+    "0100100101000010"
+  ]
 }
 
 export const processTest = (rawTest: string): Test => {
@@ -160,6 +202,16 @@ export const processTest = (rawTest: string): Test => {
       return { testName: "sorsonet", bits: sorsonet }
     case "srgen":
       return { testName: "srgen", bits: SRGenerator }
+    case "bemba":
+      return { testName: "bemba", bits: bemba }
+    case "columbia":
+      return { testName: "columbia", bits: columbia }
+    case "aka":
+      return { testName: "aka", bits: aka }
+    case "fume":
+      return { testName: "fume", bits: fume }
+    case "ewe":
+      return { testName: "ewe", bits: ewe }
     default:
       return { bits: rawTest }
   }
@@ -243,7 +295,7 @@ const displayTable = (history: History) => {
   table.printTable();
 };
 
-export const displayCount = (count: Count, skipTwos: boolean = false) => {
+export const displayCount = (count: Count, strictSetMatch: boolean = false) => {
   console.log("");
   console.log("VARS: ", count.vars);
   console.log("MATCHING ONE OFFS");
@@ -252,7 +304,7 @@ export const displayCount = (count: Count, skipTwos: boolean = false) => {
     console.table(value);
   });
 
-  if (!skipTwos) {
+  if (!strictSetMatch) {
     console.log("MATCHING TWO OFFS");
     Object.entries(count.matchingTwoOffs).forEach(([key, value]) => {
       console.log(key);

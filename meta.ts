@@ -11,7 +11,7 @@ export type Count = {
 export const meta = (
   analyses: Record<string, Array<Analysis>>,
   matchThreshold: number = 1,
-  skipTwos: boolean = false
+  strictSetMatch: boolean = false
 ) => {
   const tests = Object.keys(analyses);
   const totalTests = tests.length;
@@ -53,50 +53,7 @@ export const meta = (
     }, [] as Array<Count>);
     return [...oldCounts, ...newCounts];
   }, [] as Array<Count>);
-  return filterByThreshold(counts, matchThreshold, skipTwos);
-};
-
-export const metaOld = (
-  analyses: Record<string, Array<Analysis>>,
-  matchThreshold: number = 1,
-  skipTwos: boolean = false
-) => {
-  const tests = Object.keys(analyses);
-  const counts = tests.reduce((oldCounts, test) => {
-    const otherTests = without(tests, test);
-    const currentAnalyses = analyses[test];
-    const newCounts = currentAnalyses.reduce((counts, analysis) => {
-      const [oneMatches, twoMatches] = otherTests.reduce(
-        ([oneMatches, twoMatches], otherTest) => {
-          const otherAnalyses = analyses[otherTest];
-          const [newOneVars, newTwoVars] = otherAnalyses.reduce(
-            ([oneVars, twoVars], otherAnalysis) => {
-              const [withinOne, withinTwo] = calculateNearness(
-                analysis,
-                otherAnalysis
-              );
-              if (withinOne) oneVars.push(otherAnalysis.vars);
-              if (withinTwo) twoVars.push(otherAnalysis.vars);
-              return [oneVars, twoVars];
-            },
-            [[], []] as [Array<Vars>, Array<Vars>]
-          );
-          oneMatches[otherTest] = newOneVars;
-          twoMatches[otherTest] = newTwoVars;
-          return [oneMatches, twoMatches];
-        },
-        [{}, {}] as [Matches, Matches]
-      );
-      counts.push({
-        vars: analysis.vars,
-        matchingOneOffs: oneMatches,
-        matchingTwoOffs: twoMatches,
-      });
-      return counts;
-    }, [] as Array<Count>);
-    return [...oldCounts, ...newCounts];
-  }, [] as Array<Count>);
-  return filterByThreshold(counts, matchThreshold, skipTwos);
+  return filterByThreshold(counts, matchThreshold, strictSetMatch);
 };
 
 const calculateNearness = (a: Analysis, b: Analysis): [boolean, boolean] => {
@@ -115,7 +72,7 @@ const calculateNearness = (a: Analysis, b: Analysis): [boolean, boolean] => {
 const filterByThreshold = (
   counts: Array<Count>,
   matchThreshold: number,
-  skipTwos: boolean
+  strictSetMatch: boolean
 ) => {
   return counts.filter((count) => {
     const numberOfOneOffs = Object.values(count.matchingOneOffs).filter(
@@ -124,7 +81,19 @@ const filterByThreshold = (
     const numberOfTwoOffs = Object.values(count.matchingTwoOffs).filter(
       (offs) => offs.length > 0
     );
-    if (skipTwos) return numberOfOneOffs.length >= matchThreshold;
+    if (strictSetMatch) {
+      const passesThreshold = numberOfOneOffs.length >= matchThreshold
+      if (!passesThreshold) return false
+      const varOffs = Object.entries(count.matchingOneOffs).map(([test, varArrays]) => {
+        const diffs: Array<string> = []
+        varArrays.forEach(vars => {
+          const diff = findDifferentVar(count.vars, vars)
+          if (diff) diffs.push(diff)
+        })
+        return diffs
+      })
+      return varOffs[0].some(v => varOffs.every(offs => offs.includes(v)))
+    }
 
     return (
       numberOfOneOffs.length >= matchThreshold ||
@@ -132,3 +101,8 @@ const filterByThreshold = (
     );
   });
 };
+
+const findDifferentVar = (a: Vars, b: Vars) => {
+  return Object.keys(a).find(key => b[key] !== a[key])
+}
+

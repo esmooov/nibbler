@@ -61,18 +61,14 @@ if (args["testSet"]) tests = processTestSet(args["testSet"])
 console.log(tests);
 fuzz(
   {
-    a: range(0, 15),
-    b: range(0, 15),
-    c: range(0, 15),
     bitA: bits,
-    bitB: bits,
     test: tests,
   },
   (vars) => {
-    const { a, b, c, bitA, bitB, test } = vars;
+    const { bitA, test } = vars;
     const program = makeProgram(
-      choice(and(x(bitA), x(bitB)), add(a), add(b)),
-      constant(add(c)),
+      choice(n(bitA), add(1), add(9)),
+      constant(add(0)),
       vars,
     );
     execute(program, test);
@@ -118,5 +114,5 @@ fuzz(
 //   }
 // );
 console.log("Beginning matching");
-const matches = meta(analyses, args["matchThreshold"], args["skipTwos"]);
-matches.forEach((match) => displayCount(match, args["skipTwos"]));
+const matches = meta(analyses, args["matchThreshold"], args["strictSetMatch"]);
+matches.forEach((match) => displayCount(match, args["strictSetMatch"]));

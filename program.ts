@@ -1,4 +1,4 @@
-import { isArray } from "lodash";
+import { isArray, isNumber } from "lodash";
 import {
   addBits,
   Bit,
@@ -336,6 +336,19 @@ export const between = (
   fn.type = TransformerType.Bit;
   return fn as NibbleTransformer<Bit>;
 };
+
+export const bit = (n: Nibble | NibbleTransformer<Nibble>, index: BitIndex) => {
+  const fn = (nibble, otherNibble) => {
+    const resolvedN = resolve(n as any, nibble, otherNibble);
+    const resolvedNibble = isNumber(resolvedN.value) ? toNibble(resolvedN.value) : resolvedN.value
+    const value = digit(resolvedNibble, index);
+    const name = description(resolvedNibble)
+    return { value, description: `${index}-bit: ${name}` };
+  };
+  fn.description = "description" in n ? `${n.description}'s ${index}-bit` : `${n} ${index}-bit`;
+  fn.type = TransformerType.Bit;
+  return fn as NibbleTransformer<Bit>;
+}
 
 export const n = (index: BitIndex): NibbleTransformer<Bit> => {
   const fn = (nibble, otherNibble) => {
