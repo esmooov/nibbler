@@ -50,6 +50,10 @@ export type Analysis = {
     inORCarries: boolean;
     inXORCarries: boolean;
     inAux: boolean;
+    inAOnes: boolean;
+    inATwos: boolean;
+    inAFours: boolean;
+    inAEights: boolean;
   };
   preHistory: History;
   mainHistory: History;
@@ -80,6 +84,11 @@ export const analyze = (
   const inCarriesA = evaluateTest(test, carriesA);
   const inCarriesB = evaluateTest(test, carriesB) && !args["skipCarriesB"];
 
+  const inAOnes = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[0]))
+  const inATwos = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[1]))
+  const inAFours = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[2]))
+  const inAEights = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[3]))
+
   const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
   const inAux = evaluateTest(test, auxValues);
 
@@ -90,11 +99,13 @@ export const analyze = (
   const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
   const inANDCarries = evaluateTest(test, andcarries);
 
+  const inA = inCarriesA || inAOnes || inATwos || inAFours || inAEights
+
   let inAny = args["limitToAux"]
     ? inAux
     : args["limitToA"]
-      ? inCarriesA
-      : inCarriesA ||
+      ? inA
+      : inA ||
       inCarriesB ||
       inXORCarries ||
       inORCarries ||
@@ -114,6 +125,10 @@ export const analyze = (
       inORCarries,
       inXORCarries,
       inAux,
+      inAOnes,
+      inATwos,
+      inAFours,
+      inAEights
     },
     preHistory,
     mainHistory,

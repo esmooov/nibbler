@@ -1,10 +1,11 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { Bit, BitIndex, runNibblers, toNibble } from "./simulate";
+import { Bit, BitIndex, runNibblers, toInt, toNibble } from "./simulate";
 import {
   add,
   and,
   between,
+  bit,
   BitCalculator,
   choice,
   complement,
@@ -61,14 +62,13 @@ if (args["testSet"]) tests = processTestSet(args["testSet"])
 console.log(tests);
 fuzz(
   {
-    bitA: bits,
     test: tests,
   },
   (vars) => {
-    const { bitA, test } = vars;
+    const { test } = vars;
     const program = makeProgram(
-      choice(n(bitA), add(1), add(9)),
-      constant(add(0)),
+      choice(n(1), add(17), add(9)),
+      constant(nibble(0)),
       vars,
     );
     execute(program, test);
