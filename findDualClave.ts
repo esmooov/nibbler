@@ -11,6 +11,7 @@ import {
   complement,
   constant,
   GT,
+  makePolyrhythmFn,
   makeProgram,
   mapOtherBits,
   n,
@@ -25,7 +26,13 @@ import {
   x,
   xor,
 } from "./program";
-import { analyze, displayCount, printAnalysis, processTest, processTestSet } from "./analyze";
+import {
+  analyze,
+  displayCount,
+  printAnalysis,
+  processTest,
+  processTestSet,
+} from "./analyze";
 import { meta } from "./meta";
 import { bits, fuzz, range } from "./testUtils";
 
@@ -33,43 +40,72 @@ const args = yargs(hideBin(process.argv)).string("test").parse();
 
 const analyses = {};
 
-let on = 0
+let on = 0;
 const everyOther: BitCalculator = ({ carryA }) => {
   if (carryA === 1) {
-    on = on ^ 1
-    return (carryA ^ on) as Bit
+    on = on ^ 1;
+    return (carryA ^ on) as Bit;
   } else {
-    return 0
+    return 0;
   }
-}
-everyOther.description = "Every other carry bit"
+};
+everyOther.description = "Every other carry bit";
 
 const execute = (program: Program, testName: string) => {
   const state = runNibblers(program, args["iterations"]);
   const test = processTest(testName);
   // TODO: fix looping tests
   test.testName = testName;
-  const analysis = analyze(state, test, program.vars, args);
+  const analysis = analyze(state, test, program, args);
   if (!analyses[testName]) analyses[testName] = [];
-  if (analysis.inAny && (analysis.loopMatchesStrictLength || !args["strictLength"])) {
+  if (
+    analysis.inAny &&
+    (analysis.loopMatchesStrictLength || !args["strictLength"])
+  ) {
     analyses[testName].push(analysis);
   }
   printAnalysis(analysis, program, args);
 };
 
 let tests = (args["test"] || "").split(",");
-if (args["testSet"]) tests = processTestSet(args["testSet"])
+if (args["testSet"]) tests = processTestSet(args["testSet"]);
 console.log(tests);
+// fuzz(
+//   {
+//     b: range(0, 15),
+//     c: range(0, 15),
+//     bitA: bits,
+//     test: tests,
+//   },
+//   (vars) => {
+//     const { b, c, bitA, test } = vars;
+//     const program = makeProgram(
+//       add(other()),
+//       constant(choice(x(bitA), add(b), add(c))),
+//       vars,
+//       {}
+//     );
+//     execute(program, test);
+//   }
+// );
 fuzz(
   {
+    bitA: bits,
+    bitB: bits,
+    a: range(0, 15),
+    b: range(0, 15),
+    c: range(0, 15),
     test: tests,
   },
   (vars) => {
-    const { test } = vars;
+    const { a, b, c, bitA, bitB, test } = vars;
     const program = makeProgram(
-      choice(n(1), add(17), add(9)),
-      constant(nibble(0)),
+      choice(and(x(bitA), x(bitB)), add(a), add(b)),
+      constant(add(other())),
       vars,
+      {
+        polyrhythmFn: makePolyrhythmFn(1, 2),
+      }
     );
     execute(program, test);
   }

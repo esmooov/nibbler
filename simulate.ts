@@ -61,6 +61,7 @@ type Entry = {
   descriptionA: string;
   descriptionB: string;
   aux: Bit | null;
+  i: number;
 };
 
 export type History = Array<Entry>;
@@ -91,14 +92,19 @@ export const runNibblers = (
     isLooping: false,
   };
 
-  return rows.reduce((state: State) => {
+  return rows.reduce((state: State, _r, i: number) => {
     const { nibbleA, NA, nibbleB, NB, history, isLooping, willStartLooping } =
       state;
     if (isLooping) return state;
 
     const { updateA, updateB } = program(nibbleA, nibbleB);
-    const nextNibbleA = updateA.value;
-    const nextNibbleB = updateB.value;
+    const {
+      updateA: shouldUpdateA,
+      updateB: shouldUpdateB,
+      i: polyI,
+    } = program.polyrhythmFn(i);
+    const nextNibbleA = shouldUpdateA ? updateA.value : nibbleA;
+    const nextNibbleB = shouldUpdateB ? updateB.value : nibbleB;
     const nextNA = toInt(nextNibbleA);
     const nextNB = toInt(nextNibbleB);
 
@@ -107,23 +113,24 @@ export const runNibblers = (
 
     const nextAux = program.updateAux
       ? program.updateAux({
-        nibbleA: nextNibbleA,
-        nibbleB: nextNibbleB,
-        carryA,
-        carryB,
-      })
+          nibbleA: nextNibbleA,
+          nibbleB: nextNibbleB,
+          carryA,
+          carryB,
+        })
       : null;
 
     const entry: Entry = {
       nibbleA,
       nibbleB,
-      descriptionA: updateA.description,
-      descriptionB: updateB.description,
+      descriptionA: shouldUpdateA ? updateA.description : "HOLD",
+      descriptionB: shouldUpdateB ? updateB.description : "HOLD",
       NA,
       NB,
       carryA,
       carryB,
       aux: nextAux,
+      i: polyI,
     };
 
     const nextIsLooping = willStartLooping;
@@ -146,4 +153,4 @@ export const runNibblers = (
 };
 
 export const entriesAreEqual = (a: Entry, b: Entry) =>
-  a.NA === b.NA && a.NB === b.NB && a.aux === b.aux;
+  a.NA === b.NA && a.NB === b.NB && a.aux === b.aux && a.i === b.i;

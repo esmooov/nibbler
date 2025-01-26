@@ -9,6 +9,7 @@ import {
   toInt,
   toNibble,
 } from "./simulate";
+import * as math from "mathjs";
 
 enum TransformerType {
   Bit,
@@ -16,22 +17,22 @@ enum TransformerType {
 }
 
 type Update<T extends Bit | Nibble | number> = T extends Bit
-  ? { value: Bit; description: string }
+  ? { value: Bit; description: string; add?: number }
   : T extends Nibble
-  ? { value: Nibble; description: string }
-  : { value: number; description: string };
+  ? { value: Nibble; description: string; add?: number }
+  : { value: number; description: string; add?: number };
 
 type NibbleTransformer<T extends Bit | Nibble> = T extends Bit
   ? {
-    (nibble: Nibble, otherNibble: Nibble): Update<Bit>;
-    type: TransformerType.Bit;
-    description?: string;
-  }
+      (nibble: Nibble, otherNibble: Nibble): Update<Bit>;
+      type: TransformerType.Bit;
+      description?: string;
+    }
   : {
-    (nibble: Nibble, otherNibble: Nibble): Update<Nibble>;
-    type: TransformerType.Nibble;
-    description?: string;
-  };
+      (nibble: Nibble, otherNibble: Nibble): Update<Nibble>;
+      type: TransformerType.Nibble;
+      description?: string;
+    };
 
 function resolve(
   value: number,
@@ -101,16 +102,19 @@ export const choice = (
     const update = test(nibble, otherNibble);
     const isOn = update.value === 1;
     const chosenOperation = isOn ? left : right;
-    const { value, description } = chosenOperation(nibble, otherNibble);
+    const { value, description, add } = chosenOperation(nibble, otherNibble);
 
     return {
       value,
-      description: `${isOn ? "⬅" : "⮕"} (${update.description
-        }): ${description}`,
+      description: `${isOn ? "⬅" : "⮕"} (${
+        update.description
+      }): ${description}`,
+      add,
     };
   };
-  fn.description = `CHOOSE ${description(test)}: (${left.description}) OR (${right.description
-    }`;
+  fn.description = `CHOOSE ${description(test)}: (${left.description}) OR (${
+    right.description
+  }`;
   fn.type = TransformerType.Nibble;
   return fn as NibbleTransformer<Nibble>;
 };
@@ -273,8 +277,8 @@ export function not(
 ): NibbleTransformer<Bit> | NibbleTransformer<Nibble> {
   return makeLogicTransformer(
     transformers as
-    | Array<NibbleTransformer<Bit>>
-    | Array<NibbleTransformer<Nibble>>,
+      | Array<NibbleTransformer<Bit>>
+      | Array<NibbleTransformer<Nibble>>,
     (updates) => toBit(!updates.some((update) => update.value === 1)),
     (updates) => {
       return toNibble(~toInt(updates[0].value));
@@ -340,15 +344,20 @@ export const between = (
 export const bit = (n: Nibble | NibbleTransformer<Nibble>, index: BitIndex) => {
   const fn = (nibble, otherNibble) => {
     const resolvedN = resolve(n as any, nibble, otherNibble);
-    const resolvedNibble = isNumber(resolvedN.value) ? toNibble(resolvedN.value) : resolvedN.value
+    const resolvedNibble = isNumber(resolvedN.value)
+      ? toNibble(resolvedN.value)
+      : resolvedN.value;
     const value = digit(resolvedNibble, index);
-    const name = description(resolvedNibble)
+    const name = description(resolvedNibble);
     return { value, description: `${index}-bit: ${name}` };
   };
-  fn.description = "description" in n ? `${n.description}'s ${index}-bit` : `${n} ${index}-bit`;
+  fn.description =
+    "description" in n
+      ? `${n.description}'s ${index}-bit`
+      : `${n} ${index}-bit`;
   fn.type = TransformerType.Bit;
   return fn as NibbleTransformer<Bit>;
-}
+};
 
 export const n = (index: BitIndex): NibbleTransformer<Bit> => {
   const fn = (nibble, otherNibble) => {
@@ -386,6 +395,7 @@ export const add = (
     return {
       value: result,
       description: `Add (${resolvedAddend.description} to ${innerDescription})`,
+      add: resolvedAddend.value,
     };
   };
   fn.description = `Add ${description(addend)}`;
@@ -459,6 +469,39 @@ export const nibble = (n: number): NibbleTransformer<Nibble> => {
   return fn as NibbleTransformer<Nibble>;
 };
 
+export const makePolyrhythmFn = (a: number, b: number): PolyrhythmFn => {
+  const fractionA = math.fraction(`1/${a}`);
+  const fractionB = math.fraction(`1/${b}`);
+  let aCount = math.fraction("0");
+  let bCount = math.fraction("0");
+  let results = [] as Array<{ updateA: boolean; updateB: boolean }>;
+
+  while (results.length === 0 || !math.equal(aCount, bCount)) {
+    if (math.smaller(aCount, bCount)) {
+      aCount = math.add(aCount, fractionA);
+      results.push({ updateA: true, updateB: false });
+    } else if (math.smaller(bCount, aCount)) {
+      bCount = math.add(bCount, fractionB);
+      results.push({ updateA: false, updateB: true });
+    } else {
+      aCount = math.add(aCount, fractionA);
+      bCount = math.add(bCount, fractionB);
+      results.push({ updateA: true, updateB: true });
+    }
+  }
+
+  const steps = results.length;
+  const fn = (i) => {
+    const modIndex = i % steps;
+    return {
+      ...results[modIndex],
+      i: modIndex,
+    };
+  };
+  fn.description = `${a}:${b} Rhythm`;
+  return fn;
+};
+
 export type BitCalculator = {
   ({
     nibbleA,
@@ -480,23 +523,40 @@ export type Program = {
     updateB: Update<Nibble>;
   };
   description: string;
+  polyrhythmFn: PolyrhythmFn;
   vars?: Record<"string", number>;
   updateAux?: BitCalculator;
+};
+
+type PolyrhythmFn = {
+  (i: number): {
+    i: number;
+    updateA: boolean;
+    updateB: boolean;
+  };
+  description: string;
 };
 
 export const makeProgram = (
   transformerA: NibbleTransformer<Nibble>,
   transformerB: NibbleTransformer<Nibble>,
   vars?: Record<string, number>,
-  auxTransformer?: BitCalculator
+  opts?: {
+    auxTransformer?: BitCalculator;
+    polyrhythmFn?: PolyrhythmFn;
+  }
 ): Program => {
   const fn = (nibbleA: Nibble, nibbleB: Nibble) => {
     const updateA = transformerA(nibbleA, nibbleB);
     const updateB = transformerB(nibbleB, nibbleA);
     return { updateA, updateB };
   };
-  fn.description = `A: (${transformerA.description})\nB: (${transformerB.description})\nAUX: (${auxTransformer?.description})`;
+  fn.description = `A: (${transformerA.description})\nB: (${transformerB.description})\nAUX: (${opts?.auxTransformer?.description})`;
   fn.vars = vars;
-  fn.updateAux = auxTransformer;
+  fn.updateAux = opts?.auxTransformer;
+  fn.polyrhythmFn = opts?.polyrhythmFn || defaultPolyrhythmFn;
   return fn;
 };
+
+const defaultPolyrhythmFn = () => ({ updateA: true, updateB: true, i: 0 });
+defaultPolyrhythmFn.description = "";

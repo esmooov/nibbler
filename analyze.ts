@@ -5,26 +5,25 @@ import { Program } from "./program";
 import { Count } from "./meta";
 
 // Equivalent to Tonada and Asaadua
-const soli = "101010101101"
+const soli = "101010101101";
 
 // Equivalent also to Bembe and Yoruba
-const tambu = "101010110101"
+const tambu = "101010110101";
 
-const sorsonet = "111010101010"
+const sorsonet = "111010101010";
 
-const sonClave = "1001001000101000"
-const rumbaClave = "1001000100101000"
-const shiko = "1000101000101000"
-const soukous = "1001001000110000"
-const bossa = "1001001000100100"
-const gahu = "1001001000100010"
-const SRGenerator = "1101010111010101"
-const bemba = "100101010010"
-const columbia = "101001010100"
-const aka = "100101001010"
-const fume = "101010010100"
-const ewe = "100101010100"
-
+const sonClave = "1001001000101000";
+const rumbaClave = "1001000100101000";
+const shiko = "1000101000101000";
+const soukous = "1001001000110000";
+const bossa = "1001001000100100";
+const gahu = "1001001000100010";
+const SRGenerator = "1101010111010101";
+const bemba = "100101010010";
+const columbia = "101001010100";
+const aka = "100101001010";
+const fume = "101010010100";
+const ewe = "100101010100";
 
 export type Test = {
   bits: string;
@@ -32,8 +31,8 @@ export type Test = {
 };
 
 const evaluateTest = (test: Test, bits: Array<Bit>): boolean => {
-  return !!bits.join("").match(test.bits)
-}
+  return !!bits.join("").match(test.bits);
+};
 
 export type Vars = Record<string, number>;
 
@@ -60,12 +59,13 @@ export type Analysis = {
   loopLength: number;
   loopMatchesStrictLength: boolean;
   vars: Vars;
+  polyrhythmName: string;
 };
 
 export const analyze = (
   state: State,
   test: Test,
-  vars?: Vars,
+  program: Program,
   args?: any
 ): Analysis => {
   const { history, isLooping } = state;
@@ -75,19 +75,31 @@ export const analyze = (
   );
   const preHistory = isLooping ? history.slice(0, firstMatchedIdx) : history;
   const mainHistory = isLooping ? history.slice(firstMatchedIdx, -1) : [];
-  const loopLength = mainHistory.length
-  const loopMatchesStrictLength = test.bits.length % loopLength === 0
-  const reps = args["strictOrder"] ? 1 : 10
+  const loopLength = mainHistory.length;
+  const loopMatchesStrictLength = test.bits.length % loopLength === 0;
+  const reps = args["strictOrder"] ? 1 : 10;
   const testHistory = flatten(Array(reps).fill(mainHistory));
   const carriesA = testHistory.map((entry) => entry.carryA);
   const carriesB = testHistory.map((entry) => entry.carryB);
   const inCarriesA = evaluateTest(test, carriesA);
   const inCarriesB = evaluateTest(test, carriesB) && !args["skipCarriesB"];
 
-  const inAOnes = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[0]))
-  const inATwos = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[1]))
-  const inAFours = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[2]))
-  const inAEights = evaluateTest(test, testHistory.map((entry) => entry.nibbleA[3]))
+  const inAOnes = evaluateTest(
+    test,
+    testHistory.map((entry) => entry.nibbleA[0])
+  );
+  const inATwos = evaluateTest(
+    test,
+    testHistory.map((entry) => entry.nibbleA[1])
+  );
+  const inAFours = evaluateTest(
+    test,
+    testHistory.map((entry) => entry.nibbleA[2])
+  );
+  const inAEights = evaluateTest(
+    test,
+    testHistory.map((entry) => entry.nibbleA[3])
+  );
 
   const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
   const inAux = evaluateTest(test, auxValues);
@@ -99,18 +111,13 @@ export const analyze = (
   const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
   const inANDCarries = evaluateTest(test, andcarries);
 
-  const inA = inCarriesA || inAOnes || inATwos || inAFours || inAEights
+  const inA = inCarriesA || inAOnes || inATwos || inAFours || inAEights;
 
   let inAny = args["limitToAux"]
     ? inAux
     : args["limitToA"]
-      ? inA
-      : inA ||
-      inCarriesB ||
-      inXORCarries ||
-      inORCarries ||
-      inANDCarries ||
-      inAux;
+    ? inA
+    : inA || inCarriesB || inXORCarries || inORCarries || inANDCarries || inAux;
 
   return {
     testName: test.testName,
@@ -128,107 +135,107 @@ export const analyze = (
       inAOnes,
       inATwos,
       inAFours,
-      inAEights
+      inAEights,
     },
     preHistory,
     mainHistory,
     loopLength,
     loopMatchesStrictLength,
-    vars: vars || {},
+    vars: program.vars || {},
+    polyrhythmName: program.polyrhythmFn.description,
   };
 };
 
 export const processTestSet = (rawTest: string) => {
-  if (rawTest === "twelves") return [
-    "100000000000",
-    "100000100000",
-    "100010001000",
-    "100100100100",
-    "100101010010",
-    "101010101010",
-    "101101010110",
-    "101101101101",
-    "101110111011",
-    "101111101111",
-    "101111111111"
-  ]
+  if (rawTest === "twelves")
+    return [
+      "100000000000",
+      "100000100000",
+      "100010001000",
+      "100100100100",
+      "100101010010",
+      "101010101010",
+      "101101010110",
+      "101101101101",
+      "101110111011",
+      "101111101111",
+      "101111111111",
+    ];
 
-  if (rawTest === "elevens") return [
-    "10000000000",
-    "10000010000",
-    "10001001000",
-    "10010100100",
-    "10010101010",
-    "10110101010",
-    "10110101101",
-    "10111011011",
-    "10111110111",
-    "10111111111"
-  ]
+  if (rawTest === "elevens")
+    return [
+      "10000000000",
+      "10000010000",
+      "10001001000",
+      "10010100100",
+      "10010101010",
+      "10110101010",
+      "10110101101",
+      "10111011011",
+      "10111110111",
+      "10111111111",
+    ];
 
-  if (rawTest === "tens") return [
-    "1000000000",
-    "1000010000",
-    "1000100100",
-    "1001010010",
-    "1010101010",
-    "1011010110",
-    "1011101101",
-    "1011110111",
-    "1011111111"
-  ]
+  if (rawTest === "tens")
+    return [
+      "1000000000",
+      "1000010000",
+      "1000100100",
+      "1001010010",
+      "1010101010",
+      "1011010110",
+      "1011101101",
+      "1011110111",
+      "1011111111",
+    ];
 
-  if (rawTest === "touissant") return [
-    "son", "rumba", "bossa", "soukous", "shiko", "gahu"
-  ]
+  if (rawTest === "touissant")
+    return ["son", "rumba", "bossa", "soukous", "shiko", "gahu"];
 
-  if (rawTest === "touissant12") return ["aka", "fume"]
+  if (rawTest === "touissant12") return ["aka", "fume"];
 
-  if (rawTest === "amenSnares") return [
-    "0000100101001001",
-    "0000100101000010",
-    "0100100101000010"
-  ]
-}
+  if (rawTest === "amenSnares")
+    return ["0000100101001001", "0000100101000010", "0100100101000010"];
+};
 
 export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
     case "sonClave":
-      return { testName: "son clave", bits: sonClave }
+      return { testName: "son clave", bits: sonClave };
     case "son":
-      return { testName: "son clave", bits: sonClave }
+      return { testName: "son clave", bits: sonClave };
     case "rumbaClave":
-      return { testName: "rumba clave", bits: rumbaClave }
+      return { testName: "rumba clave", bits: rumbaClave };
     case "rumba":
-      return { testName: "rumba clave", bits: rumbaClave }
+      return { testName: "rumba clave", bits: rumbaClave };
     case "shiko":
-      return { testName: "shiko", bits: shiko }
+      return { testName: "shiko", bits: shiko };
     case "soukous":
-      return { testName: "soukous", bits: soukous }
+      return { testName: "soukous", bits: soukous };
     case "bossa":
-      return { testName: "bossa nova", bits: bossa }
+      return { testName: "bossa nova", bits: bossa };
     case "gahu":
-      return { testName: "gahu", bits: gahu }
+      return { testName: "gahu", bits: gahu };
     case "soli":
-      return { testName: "soli", bits: soli }
+      return { testName: "soli", bits: soli };
     case "tambu":
-      return { testName: "tambu", bits: tambu }
+      return { testName: "tambu", bits: tambu };
     case "sorsonet":
-      return { testName: "sorsonet", bits: sorsonet }
+      return { testName: "sorsonet", bits: sorsonet };
     case "srgen":
-      return { testName: "srgen", bits: SRGenerator }
+      return { testName: "srgen", bits: SRGenerator };
     case "bemba":
-      return { testName: "bemba", bits: bemba }
+      return { testName: "bemba", bits: bemba };
     case "columbia":
-      return { testName: "columbia", bits: columbia }
+      return { testName: "columbia", bits: columbia };
     case "aka":
-      return { testName: "aka", bits: aka }
+      return { testName: "aka", bits: aka };
     case "fume":
-      return { testName: "fume", bits: fume }
+      return { testName: "fume", bits: fume };
     case "ewe":
-      return { testName: "ewe", bits: ewe }
+      return { testName: "ewe", bits: ewe };
     default:
-      return { bits: rawTest }
+      return { bits: rawTest };
   }
 };
 
@@ -240,6 +247,7 @@ export const printAnalysis = (
   const success = analysis.inAny && analysis.loopMatchesStrictLength;
 
   if (success && opts["tiny"] && !opts["debugSuccess"]) {
+    console.log("Poly: ", analysis.polyrhythmName);
     console.log(
       program.vars,
       `CA: ${analysis.testResults.inCarriesA} CB: ${analysis.testResults.inCarriesB}`
@@ -249,6 +257,7 @@ export const printAnalysis = (
 
   if (success || opts["debug"]) {
     console.log("");
+    console.log("Poly: ", analysis.polyrhythmName);
     console.log(program.description);
     if (opts["debug"] || opts["debugSuccess"]) {
       if (analysis?.preHistory.length) {
@@ -272,6 +281,7 @@ export const printAnalysis = (
 const displayTable = (history: History) => {
   const table = new Table({
     columns: [
+      { name: "n" },
       { name: "i" },
       {
         name: "descriptionA",
@@ -305,7 +315,7 @@ const displayTable = (history: History) => {
     ],
   });
   history.forEach((entry, i) => {
-    table.addRow({ ...entry, i });
+    table.addRow({ ...entry, n: i });
   });
   table.printTable();
 };
