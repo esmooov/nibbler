@@ -88,49 +88,49 @@ console.log(tests);
 //     execute(program, test);
 //   }
 // );
-fuzz(
-  {
-    bitA: bits,
-    bitB: bits,
-    a: range(0, 15),
-    b: range(0, 15),
-    c: range(0, 15),
-    test: tests,
-  },
-  (vars) => {
-    const { a, b, c, bitA, bitB, test } = vars;
-    const program = makeProgram(
-      choice(and(x(bitA), x(bitB)), add(a), add(b)),
-      constant(add(other())),
-      vars,
-      {
-        polyrhythmFn: makePolyrhythmFn(1, 2),
-      }
-    );
-    execute(program, test);
-  }
-);
-
-// CANONICAL WORLD RHYTHM: DO NOT CHANGE
 // fuzz(
 //   {
+//     bitA: bits,
+//     bitB: bits,
 //     a: range(0, 15),
 //     b: range(0, 15),
 //     c: range(0, 15),
-//     bitA: bits,
-//     bitB: bits,
 //     test: tests,
 //   },
 //   (vars) => {
 //     const { a, b, c, bitA, bitB, test } = vars;
 //     const program = makeProgram(
 //       choice(and(x(bitA), x(bitB)), add(a), add(b)),
-//       constant(add(c)),
-//       vars
+//       constant(add(other())),
+//       vars,
+//       {
+//         polyrhythmFn: makePolyrhythmFn(1, 2),
+//       }
 //     );
 //     execute(program, test);
 //   }
 // );
+
+// CANONICAL WORLD RHYTHM: DO NOT CHANGE
+fuzz(
+  {
+    a: range(11, 11),
+    b: range(3, 3),
+    c: range(0, 15),
+    bitA: [4],
+    bitB: [8],
+    test: tests,
+  },
+  (vars) => {
+    const { a, b, c, bitA, bitB, test } = vars;
+    const program = makeProgram(
+      choice(and(x(bitA), x(bitB)), add(a), add(b)),
+      constant(add(c)),
+      vars
+    );
+    execute(program, test);
+  }
+);
 
 // CANONICAL EUCLIDEAN
 // fuzz(
