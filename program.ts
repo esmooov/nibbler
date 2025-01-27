@@ -75,9 +75,13 @@ type BitMap = {
   4: number;
   8: number;
 };
-export const mapOtherBits = (map: BitMap): NibbleTransformer<Nibble> => {
+
+export const mapOtherBits = (
+  map: BitMap,
+  baseAddend: number = 0
+): NibbleTransformer<Nibble> => {
   const fn = (nibble, otherNibble) => {
-    let addend = 0;
+    let addend = baseAddend;
     if (digit(otherNibble, 1)) addend += map[1];
     if (digit(otherNibble, 2)) addend += map[2];
     if (digit(otherNibble, 4)) addend += map[4];
@@ -86,9 +90,10 @@ export const mapOtherBits = (map: BitMap): NibbleTransformer<Nibble> => {
     return {
       value: newNibble,
       description: `Add ${addend}`,
+      add: addend,
     };
   };
-  fn.description = `BITMAP ${map}`;
+  fn.description = `BITMAP ${JSON.stringify(map)} (Base: ${baseAddend})`;
   fn.type = TransformerType.Nibble;
   return fn as NibbleTransformer<Nibble>;
 };

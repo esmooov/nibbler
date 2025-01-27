@@ -34,7 +34,7 @@ import {
   processTestSet,
 } from "./analyze";
 import { meta } from "./meta";
-import { bits, fuzz, range } from "./testUtils";
+import { bits, fuzz, range, straightBitmaps } from "./testUtils";
 
 const args = yargs(hideBin(process.argv)).string("test").parse();
 
@@ -88,49 +88,44 @@ console.log(tests);
 //     execute(program, test);
 //   }
 // );
+console.log("straightBitmaps", straightBitmaps);
+fuzz(
+  {
+    map: straightBitmaps,
+    a: range(0, 15),
+    b: range(0, 15),
+    test: tests,
+  },
+  (vars) => {
+    const { a, b, map, test } = vars;
+    const program = makeProgram(mapOtherBits(map, a), constant(add(b)), vars);
+    execute(program, test);
+  }
+);
+
+// TODO: each update describes how to set add AND
+// how to update nibble
+
+// CANONICAL WORLD RHYTHM: DO NOT CHANGE
 // fuzz(
 //   {
-//     bitA: bits,
-//     bitB: bits,
-//     a: range(0, 15),
-//     b: range(0, 15),
+//     a: range(11, 11),
+//     b: range(3, 3),
 //     c: range(0, 15),
+//     bitA: [4],
+//     bitB: [8],
 //     test: tests,
 //   },
 //   (vars) => {
 //     const { a, b, c, bitA, bitB, test } = vars;
 //     const program = makeProgram(
 //       choice(and(x(bitA), x(bitB)), add(a), add(b)),
-//       constant(add(other())),
-//       vars,
-//       {
-//         polyrhythmFn: makePolyrhythmFn(1, 2),
-//       }
+//       constant(add(c)),
+//       vars
 //     );
 //     execute(program, test);
 //   }
 // );
-
-// CANONICAL WORLD RHYTHM: DO NOT CHANGE
-fuzz(
-  {
-    a: range(11, 11),
-    b: range(3, 3),
-    c: range(0, 15),
-    bitA: [4],
-    bitB: [8],
-    test: tests,
-  },
-  (vars) => {
-    const { a, b, c, bitA, bitB, test } = vars;
-    const program = makeProgram(
-      choice(and(x(bitA), x(bitB)), add(a), add(b)),
-      constant(add(c)),
-      vars
-    );
-    execute(program, test);
-  }
-);
 
 // CANONICAL EUCLIDEAN
 // fuzz(

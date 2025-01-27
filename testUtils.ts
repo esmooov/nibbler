@@ -1,5 +1,7 @@
+import { flatten, uniq, uniqBy, zip } from "lodash";
 import { Program } from "./program";
-import { BitIndex } from "./simulate";
+import { BitIndex, toBit, toNibble } from "./simulate";
+import * as percom from "percom";
 
 type VariableManifest<Keys extends string> = { [Key in Keys]: Array<any> };
 type Variables<Keys extends string> = { [Key in Keys]: any };
@@ -40,3 +42,22 @@ export const range = (a: number, b: number): Array<number> => {
 };
 
 export const bits: Array<BitIndex> = [1, 2, 4, 8];
+
+const bitPermuations = percom.per(bits, 4);
+const masks = range(0, 15).map(toNibble);
+export const straightBitmaps = uniqBy(
+  flatten(
+    masks.map((mask) => {
+      return bitPermuations.map((perm) => {
+        const adds = zip(perm, mask).map(([p, m]) => (m === 1 ? p : 0));
+        return {
+          1: adds[0],
+          2: adds[1],
+          4: adds[2],
+          8: adds[3],
+        };
+      });
+    })
+  ),
+  ({ 1: a, 2: b, 4: c, 8: d }) => [a, b, c, d].join("")
+);

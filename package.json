@@ -26,6 +26,7 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "mathjs": "^14.0.1"
+    "mathjs": "^14.0.1",
+    "percom": "^1.1.3"
   }
 }
