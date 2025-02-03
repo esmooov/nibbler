@@ -1639,6 +1639,11 @@ color-name@~1.1.4:
   resolved "https://registry.yarnpkg.com/color-name/-/color-name-1.1.4.tgz#c2a09a87acbde69543de6f63fa3995c826c536a2"
   integrity sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==
 
+combos@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/combos/-/combos-0.2.0.tgz#dc31c5a899b42293d55fe19c064d3e6e207ba4f7"
+  integrity sha512-Z6YfvgiTCERWJTj3wQiXamFhssdvz1n4ok447rS330lw3uL72WAx8IvrLU7xiE71uyb5WF8JEP+BWB5KhOoGeg==
+
 complex.js@^2.2.5:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/complex.js/-/complex.js-2.4.2.tgz#76f260a9e7e232d8ad26348484a9b128c13fcc9a"

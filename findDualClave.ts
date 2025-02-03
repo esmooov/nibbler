@@ -1,6 +1,6 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
-import { Bit, BitIndex, runNibblers, toInt, toNibble } from "./simulate";
+import { Bit, BitIndex, digit, runNibblers, toInt, toNibble } from "./simulate";
 import {
   add,
   and,
@@ -13,7 +13,7 @@ import {
   GT,
   makePolyrhythmFn,
   makeProgram,
-  mapOtherBits,
+  mapBits,
   n,
   nibble,
   not,
@@ -34,7 +34,16 @@ import {
   processTestSet,
 } from "./analyze";
 import { meta } from "./meta";
-import { bits, fuzz, range, straightBitmaps } from "./testUtils";
+import {
+  allMasks,
+  bits,
+  fuzz,
+  fuzz2,
+  masksToBitmap,
+  oneMasks,
+  range,
+  twoMasks,
+} from "./testUtils";
 
 const args = yargs(hideBin(process.argv)).string("test").parse();
 
@@ -88,17 +97,17 @@ console.log(tests);
 //     execute(program, test);
 //   }
 // );
-console.log("straightBitmaps", straightBitmaps);
-fuzz(
+fuzz2(
   {
-    map: straightBitmaps,
+    mapA: masksToBitmap(oneMasks.concat(twoMasks), true),
+    mapB: masksToBitmap(oneMasks.concat(twoMasks), true),
     a: range(0, 15),
     b: range(0, 15),
     test: tests,
   },
   (vars) => {
-    const { a, b, map, test } = vars;
-    const program = makeProgram(mapOtherBits(map, a), constant(add(b)), vars);
+    const { a, b, mapA, mapB, test } = vars;
+    const program = makeProgram(mapBits(mapA, a), mapBits(mapB, b), vars);
     execute(program, test);
   }
 );

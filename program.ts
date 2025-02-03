@@ -69,23 +69,49 @@ const description = (t: NibbleTransformer<any> | number | Nibble): string => {
   return String(t);
 };
 
+// TODO ADD NOT SUPPORT
+
 type BitMap = {
-  1: number;
-  2: number;
-  4: number;
-  8: number;
+  1?: number;
+  2?: number;
+  4?: number;
+  8?: number;
+  "-1"?: number;
+  "-2"?: number;
+  "-4"?: number;
+  "-8"?: number;
 };
 
-export const mapOtherBits = (
+export const mapBits = (
   map: BitMap,
-  baseAddend: number = 0
+  baseAddend: number = 0,
+  opts: {
+    useOwnBits?: boolean;
+  } = {}
 ): NibbleTransformer<Nibble> => {
-  const fn = (nibble, otherNibble) => {
+  const fn = (ownNibble, otherNibble) => {
+    const nibble = opts.useOwnBits ? ownNibble : otherNibble;
     let addend = baseAddend;
-    if (digit(otherNibble, 1)) addend += map[1];
-    if (digit(otherNibble, 2)) addend += map[2];
-    if (digit(otherNibble, 4)) addend += map[4];
-    if (digit(otherNibble, 8)) addend += map[8];
+    if (digit(nibble, 1)) {
+      addend += map["1"] || 0;
+    } else {
+      addend += map["-1"] || 0;
+    }
+    if (digit(nibble, 2)) {
+      addend += map["2"] || 0;
+    } else {
+      addend += map["-2"] || 0;
+    }
+    if (digit(nibble, 4)) {
+      addend += map["4"] || 0;
+    } else {
+      addend += map["-4"] || 0;
+    }
+    if (digit(nibble, 8)) {
+      addend += map["8"] || 0;
+    } else {
+      addend += map["-8"] || 0;
+    }
     const newNibble = addBits(addend, nibble);
     return {
       value: newNibble,

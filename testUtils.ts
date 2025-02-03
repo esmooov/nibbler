@@ -1,6 +1,6 @@
 import { flatten, uniq, uniqBy, zip } from "lodash";
-import { Program } from "./program";
-import { BitIndex, toBit, toNibble } from "./simulate";
+import { other, Program } from "./program";
+import { Bit, BitIndex, Nibble, toBit, toNibble } from "./simulate";
 import * as percom from "percom";
 
 type VariableManifest<Keys extends string> = { [Key in Keys]: Array<any> };
@@ -14,6 +14,31 @@ export const fuzz = <Vars extends string>(
   variables.forEach((v) => {
     fn(v);
   });
+};
+
+// TODO call without building options
+export const fuzz2 = <Vars extends string>(
+  manifest: VariableManifest<Vars>,
+  fn: (variables: Variables<Vars>) => void
+) => {
+  const entries = Object.entries(manifest);
+  fuzzInner(entries[0], entries.slice(1), {}, fn);
+};
+
+const fuzzInner = (currentEntry, otherEntries, map, fn) => {
+  if (!currentEntry) {
+    fn(map);
+  } else {
+    const [key, options] = currentEntry;
+    options.forEach((o) =>
+      fuzzInner(
+        otherEntries[0],
+        otherEntries.slice(1),
+        { ...map, [key]: o },
+        fn
+      )
+    );
+  }
 };
 
 export const distribute = (accumulator, entries) => {
@@ -44,20 +69,55 @@ export const range = (a: number, b: number): Array<number> => {
 export const bits: Array<BitIndex> = [1, 2, 4, 8];
 
 const bitPermuations = percom.per(bits, 4);
-const masks = range(0, 15).map(toNibble);
-export const straightBitmaps = uniqBy(
-  flatten(
-    masks.map((mask) => {
-      return bitPermuations.map((perm) => {
-        const adds = zip(perm, mask).map(([p, m]) => (m === 1 ? p : 0));
-        return {
-          1: adds[0],
-          2: adds[1],
-          4: adds[2],
-          8: adds[3],
-        };
-      });
-    })
-  ),
-  ({ 1: a, 2: b, 4: c, 8: d }) => [a, b, c, d].join("")
-);
+export const allMasks = range(0, 15).map(toNibble);
+export const twoMasks: Array<Nibble> = [
+  [0, 0, 1, 1],
+  [0, 1, 1, 0],
+  [1, 1, 0, 0],
+  [1, 0, 0, 1],
+  [1, 0, 1, 0],
+  [0, 1, 0, 1],
+];
+export const oneMasks: Array<Nibble> = [
+  [1, 0, 0, 0],
+  [0, 1, 0, 0],
+  [0, 0, 1, 0],
+  [0, 0, 0, 1],
+];
+
+const generateFlipMasks = (masks: Array<Nibble>) => {
+  const fullMasks: Array<Array<0 | 1 | -0 | -1>> = [];
+  masks.forEach((m) => {
+    allMasks.forEach((a) => {
+      fullMasks.push(
+        zip(m, a).map(([m, a]) => (a === 1 ? -1 * (m as Bit) : m)) as Array<
+          0 | 1 | -0 | -1
+        >
+      );
+    });
+  });
+  return fullMasks;
+};
+
+export const masksToBitmap = (
+  masks: Array<Nibble>,
+  includeFlips: boolean = false
+) => {
+  const fullMasks = includeFlips ? generateFlipMasks(masks) : masks;
+  return uniqBy(
+    flatten(
+      fullMasks.map((mask) => {
+        return bitPermuations.map((perm) => {
+          const finalMap = {};
+          mask.forEach((m, i) => {
+            const isNegative = Object.is(m, -0) || Object.is(m, -1);
+            const index = isNegative ? bits[i] * -1 : bits[i];
+            finalMap[index] = m == 0 ? 0 : perm[i];
+          });
+          return finalMap;
+        });
+      })
+    ),
+    (map) => flatten(Object.entries(map)).join("")
+  );
+};

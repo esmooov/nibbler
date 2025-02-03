@@ -1,4 +1,4 @@
-import { omit, without, zip } from "lodash";
+import { flatten, isEqual, omit, sortBy, without, zip } from "lodash";
 import { Analysis, Vars } from "./analyze";
 
 type Matches = Record<string, Array<Vars>>;
@@ -24,7 +24,8 @@ export const meta = (
     const currentAnalyses = analyses[test];
     const newCounts = currentAnalyses.reduce((counts, analysis) => {
       const [oneMatches, twoMatches] = otherTests.reduce(
-        ([oneMatches, twoMatches], otherTest) => {
+        ([oneMatches, twoMatches], otherTest, ii) => {
+          // TODO if you ever fail to match, give up
           const otherAnalyses = analyses[otherTest];
           const [newOneVars, newTwoVars] = otherAnalyses.reduce(
             ([oneVars, twoVars], otherAnalysis) => {
@@ -32,6 +33,7 @@ export const meta = (
                 analysis,
                 otherAnalysis
               );
+              if (withinOne) process.stdout.write(".");
               if (withinOne) oneVars.push(otherAnalysis.vars);
               if (withinTwo) twoVars.push(otherAnalysis.vars);
               return [oneVars, twoVars];
@@ -56,13 +58,23 @@ export const meta = (
   return filterByThreshold(counts, matchThreshold, strictSetMatch);
 };
 
+const mapToValues = (map: Record<string, number>): Array<string | number> => {
+  return flatten(sortBy(Object.entries(map), ([k, _v]) => k));
+};
+
 const calculateNearness = (a: Analysis, b: Analysis): [boolean, boolean] => {
   const rawAVars = Object.values(omit(a.vars, "test"));
   const rawBVars = Object.values(omit(b.vars, "test"));
-
   if (rawAVars.length === 0 || rawBVars.length === 0) return [false, false];
-  const varPairs = zip(rawAVars, rawBVars);
-  const matches = varPairs.filter(([a, b]) => a === b);
+  const expandedAVars = flatten(
+    rawAVars.map((a) => (typeof a === "object" ? mapToValues(a) : a))
+  );
+  const expandedBVars = flatten(
+    rawBVars.map((b) => (typeof b === "object" ? mapToValues(b) : b))
+  );
+
+  const varPairs = zip(expandedAVars, expandedBVars);
+  const matches = varPairs.filter(([a, b]) => isEqual(a, b));
   const totalVars = varPairs.length;
   const withinOne = matches.length >= totalVars - 1;
   const withinTwo = matches.length >= totalVars - 2;
@@ -82,17 +94,19 @@ const filterByThreshold = (
       (offs) => offs.length > 0
     );
     if (strictSetMatch) {
-      const passesThreshold = numberOfOneOffs.length >= matchThreshold
-      if (!passesThreshold) return false
-      const varOffs = Object.entries(count.matchingOneOffs).map(([test, varArrays]) => {
-        const diffs: Array<string> = []
-        varArrays.forEach(vars => {
-          const diff = findDifferentVar(count.vars, vars)
-          if (diff) diffs.push(diff)
-        })
-        return diffs
-      })
-      return varOffs[0].some(v => varOffs.every(offs => offs.includes(v)))
+      const passesThreshold = numberOfOneOffs.length >= matchThreshold;
+      if (!passesThreshold) return false;
+      const varOffs = Object.entries(count.matchingOneOffs).map(
+        ([test, varArrays]) => {
+          const diffs: Array<string> = [];
+          varArrays.forEach((vars) => {
+            const diff = findDifferentVar(count.vars, vars);
+            if (diff) diffs.push(diff);
+          });
+          return diffs;
+        }
+      );
+      return varOffs[0].some((v) => varOffs.every((offs) => offs.includes(v)));
     }
 
     return (
@@ -103,6 +117,5 @@ const filterByThreshold = (
 };
 
 const findDifferentVar = (a: Vars, b: Vars) => {
-  return Object.keys(a).find(key => b[key] !== a[key])
-}
-
+  return Object.keys(a).find((key) => b[key] !== a[key]);
+};

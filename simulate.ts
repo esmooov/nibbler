@@ -32,6 +32,7 @@ export const addBits = (
 };
 
 export type BitIndex = 1 | 2 | 4 | 8;
+export type NotBitIndex = -1 | -2 | -4 | -8;
 export const digit = (n: Nibble, d: BitIndex) => {
   switch (d) {
     case 1:

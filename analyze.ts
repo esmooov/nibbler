@@ -34,7 +34,7 @@ const evaluateTest = (test: Test, bits: Array<Bit>): boolean => {
   return !!bits.join("").match(test.bits);
 };
 
-export type Vars = Record<string, number>;
+export type Vars = Record<string, number | Record<string, number>>;
 
 export type Analysis = {
   testName?: string;
@@ -117,6 +117,10 @@ export const analyze = (
     ? inAux
     : args["limitToA"]
     ? inA
+    : args["limitToCarriesA"]
+    ? inCarriesA
+    : args["limitToCarries"]
+    ? inCarriesA || inCarriesB
     : inA || inCarriesB || inXORCarries || inORCarries || inANDCarries || inAux;
 
   return {
@@ -196,6 +200,9 @@ export const processTestSet = (rawTest: string) => {
 
   if (rawTest === "amenSnares")
     return ["0000100101001001", "0000100101000010", "0100100101000010"];
+
+  if (rawTest === "aksak")
+    return ["10100", "1010100", "101010100", "10101010100"];
 };
 
 export const processTest = (rawTest: string): Test => {
@@ -244,8 +251,13 @@ export const printAnalysis = (
   program: Program,
   opts: Record<string, any>
 ) => {
-  const success = analysis.inAny && analysis.loopMatchesStrictLength;
-
+  const success =
+    analysis.inAny &&
+    (analysis.loopMatchesStrictLength || !opts["strictLength"]);
+  if (opts["micro"]) {
+    success && process.stdout.write(".");
+    return;
+  }
   if (success && opts["tiny"] && !opts["debugSuccess"]) {
     console.log("Poly: ", analysis.polyrhythmName);
     console.log(
@@ -325,8 +337,17 @@ export const displayCount = (count: Count, strictSetMatch: boolean = false) => {
   console.log("VARS: ", count.vars);
   console.log("MATCHING ONE OFFS");
   Object.entries(count.matchingOneOffs).forEach(([key, value]) => {
-    console.log(key);
-    console.table(value);
+    const formattedValue = value.map((v) => {
+      const output = { ...v };
+      if (output.mapA) {
+        output.mapA = JSON.stringify(output.mapA) as any;
+      }
+      if (output.mapB) {
+        output.mapB = JSON.stringify(output.mapB) as any;
+      }
+      return output;
+    });
+    console.table(formattedValue);
   });
 
   if (!strictSetMatch) {
