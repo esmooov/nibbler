@@ -3,6 +3,7 @@ import { flatten, pickBy, zipWith } from "lodash";
 import { Bit, entriesAreEqual, State, History } from "./simulate";
 import { Program } from "./program";
 import { Count } from "./meta";
+const terminalOverwrite = require("terminal-overwrite");
 
 // Equivalent to Tonada and Asaadua
 const soli = "101010101101";
@@ -246,16 +247,26 @@ export const processTest = (rawTest: string): Test => {
   }
 };
 
+let sCount = 0;
+let tCount = 0;
+
 export const printAnalysis = (
   analysis: Analysis,
   program: Program,
-  opts: Record<string, any>
+  opts: Record<string, any>,
+  totalRuns: number
 ) => {
   const success =
     analysis.inAny &&
     (analysis.loopMatchesStrictLength || !opts["strictLength"]);
   if (opts["micro"]) {
-    success && process.stdout.write(".");
+    tCount += 1;
+    if (success) sCount += 1;
+    terminalOverwrite(
+      `Hits: ${sCount} / Total: ${tCount} / ${(tCount / totalRuns) * 100}%`
+    );
+
+    // success && process.stdout.write(".");
     return;
   }
   if (success && opts["tiny"] && !opts["debugSuccess"]) {

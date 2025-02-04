@@ -60,7 +60,7 @@ const everyOther: BitCalculator = ({ carryA }) => {
 };
 everyOther.description = "Every other carry bit";
 
-const execute = (program: Program, testName: string) => {
+const execute = (program: Program, testName: string, totalRuns: number) => {
   const state = runNibblers(program, args["iterations"]);
   const test = processTest(testName);
   // TODO: fix looping tests
@@ -73,7 +73,7 @@ const execute = (program: Program, testName: string) => {
   ) {
     analyses[testName].push(analysis);
   }
-  printAnalysis(analysis, program, args);
+  printAnalysis(analysis, program, args, totalRuns);
 };
 
 let tests = (args["test"] || "").split(",");
@@ -105,10 +105,10 @@ fuzz2(
     b: range(0, 15),
     test: tests,
   },
-  (vars) => {
+  (vars, totalRuns) => {
     const { a, b, mapA, mapB, test } = vars;
     const program = makeProgram(mapBits(mapA, a), mapBits(mapB, b), vars);
-    execute(program, test);
+    execute(program, test, totalRuns);
   }
 );
 

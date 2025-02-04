@@ -58,8 +58,14 @@ export const meta = (
   return filterByThreshold(counts, matchThreshold, strictSetMatch);
 };
 
-const mapToValues = (map: Record<string, number>): Array<string | number> => {
-  return flatten(sortBy(Object.entries(map), ([k, _v]) => k));
+export const mapToValues = (
+  map: Record<string, number>,
+  filterZeros: boolean = false
+): Array<string | number> => {
+  const entries = filterZeros
+    ? Object.entries(map).filter(([_k, v]) => v != 0)
+    : Object.entries(map);
+  return flatten(sortBy(entries, ([k, _v]) => k));
 };
 
 const calculateNearness = (a: Analysis, b: Analysis): [boolean, boolean] => {

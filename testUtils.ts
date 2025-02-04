@@ -2,6 +2,7 @@ import { flatten, uniq, uniqBy, zip } from "lodash";
 import { other, Program } from "./program";
 import { Bit, BitIndex, Nibble, toBit, toNibble } from "./simulate";
 import * as percom from "percom";
+import { mapToValues } from "./meta";
 
 type VariableManifest<Keys extends string> = { [Key in Keys]: Array<any> };
 type Variables<Keys extends string> = { [Key in Keys]: any };
@@ -19,15 +20,20 @@ export const fuzz = <Vars extends string>(
 // TODO call without building options
 export const fuzz2 = <Vars extends string>(
   manifest: VariableManifest<Vars>,
-  fn: (variables: Variables<Vars>) => void
+  fn: (variables: Variables<Vars>, totalRuns: number) => void
 ) => {
+  const options = Object.values(manifest) as Array<Array<any>>;
+  const totalRuns = options.reduce(
+    (m: number, i: Array<any>) => m * i.length,
+    1
+  );
   const entries = Object.entries(manifest);
-  fuzzInner(entries[0], entries.slice(1), {}, fn);
+  fuzzInner(entries[0], entries.slice(1), {}, fn, totalRuns);
 };
 
-const fuzzInner = (currentEntry, otherEntries, map, fn) => {
+const fuzzInner = (currentEntry, otherEntries, map, fn, totalRuns) => {
   if (!currentEntry) {
-    fn(map);
+    fn(map, totalRuns);
   } else {
     const [key, options] = currentEntry;
     options.forEach((o) =>
@@ -35,7 +41,8 @@ const fuzzInner = (currentEntry, otherEntries, map, fn) => {
         otherEntries[0],
         otherEntries.slice(1),
         { ...map, [key]: o },
-        fn
+        fn,
+        totalRuns
       )
     );
   }
@@ -118,6 +125,6 @@ export const masksToBitmap = (
         });
       })
     ),
-    (map) => flatten(Object.entries(map)).join("")
+    (map) => mapToValues(map, true).join("")
   );
 };

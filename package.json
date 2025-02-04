@@ -28,6 +28,7 @@
   "dependencies": {
     "combos": "^0.2.0",
     "mathjs": "^14.0.1",
-    "percom": "^1.1.3"
+    "percom": "^1.1.3",
+    "terminal-overwrite": "^2.0.1"
   }
 }
