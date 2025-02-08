@@ -10,6 +10,7 @@ import {
   choice,
   complement,
   constant,
+  gateToTrigger,
   GT,
   makePolyrhythmFn,
   makeProgram,
@@ -99,15 +100,21 @@ console.log(tests);
 // );
 fuzz2(
   {
-    mapA: masksToBitmap(oneMasks.concat(twoMasks), true),
-    mapB: masksToBitmap(oneMasks.concat(twoMasks), true),
+    mapA: masksToBitmap(allMasks, true),
     a: range(0, 15),
-    b: range(0, 15),
     test: tests,
   },
   (vars, totalRuns) => {
-    const { a, b, mapA, mapB, test } = vars;
-    const program = makeProgram(mapBits(mapA, a), mapBits(mapB, b), vars);
+    const { a, mapA, test } = vars;
+    const program = makeProgram(
+      mapBits(mapA, a, { useOwnBits: true }),
+      constant(add(0)),
+      vars,
+      {
+        auxTransformer: ({ carryA }) => carryA,
+        auxPostProcess: gateToTrigger,
+      }
+    );
     execute(program, test, totalRuns);
   }
 );

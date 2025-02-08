@@ -112,7 +112,7 @@ export const mapBits = (
     } else {
       addend += map["-8"] || 0;
     }
-    const newNibble = addBits(addend, nibble);
+    const newNibble = addBits(addend, ownNibble);
     return {
       value: newNibble,
       description: `Add ${addend}`,
@@ -557,6 +557,7 @@ export type Program = {
   polyrhythmFn: PolyrhythmFn;
   vars?: Record<"string", number>;
   updateAux?: BitCalculator;
+  auxPostProcess: (bits: Array<Bit>) => Array<Bit>;
 };
 
 type PolyrhythmFn = {
@@ -575,6 +576,7 @@ export const makeProgram = (
   opts?: {
     auxTransformer?: BitCalculator;
     polyrhythmFn?: PolyrhythmFn;
+    auxPostProcess?: (bits: Array<Bit>) => Array<Bit>;
   }
 ): Program => {
   const fn = (nibbleA: Nibble, nibbleB: Nibble) => {
@@ -586,7 +588,26 @@ export const makeProgram = (
   fn.vars = vars;
   fn.updateAux = opts?.auxTransformer;
   fn.polyrhythmFn = opts?.polyrhythmFn || defaultPolyrhythmFn;
+  fn.auxPostProcess = opts?.auxPostProcess || ((bits) => bits);
   return fn;
+};
+
+export const gateToTrigger = (bits: Array<Bit>): Array<Bit> => {
+  return bits.reduce(
+    ({ bits, low }, i) => {
+      if (i === 1 && low) {
+        return { bits: bits.concat(1), low: false };
+      }
+      if (i === 1 && !low) {
+        return { bits: bits.concat(0), low: false };
+      }
+      if (i === 0) {
+        return { bits: bits.concat(0), low: true };
+      }
+      return { bits, low };
+    },
+    { bits: [] as Array<Bit>, low: true }
+  )["bits"];
 };
 
 const defaultPolyrhythmFn = () => ({ updateA: true, updateB: true, i: 0 });

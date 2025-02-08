@@ -102,7 +102,8 @@ export const analyze = (
     testHistory.map((entry) => entry.nibbleA[3])
   );
 
-  const auxValues = testHistory.map((entry) => (entry.aux || 0) as Bit);
+  const auxValuesRaw = testHistory.map((entry) => (entry.aux || 0) as Bit);
+  const auxValues = program.auxPostProcess(auxValuesRaw);
   const inAux = evaluateTest(test, auxValues);
 
   const xorcarries = zipWith(carriesA, carriesB, (a, b) => (a ^ b) as Bit);
@@ -152,6 +153,14 @@ export const analyze = (
 };
 
 export const processTestSet = (rawTest: string) => {
+  if (rawTest === "flamenco")
+    return [
+      "100100100100",
+      "100100101010",
+      "101010010010",
+      "001000110101",
+      "001001010101",
+    ];
   if (rawTest === "twelves")
     return [
       "100000000000",
@@ -281,6 +290,7 @@ export const printAnalysis = (
   if (success || opts["debug"]) {
     console.log("");
     console.log("Poly: ", analysis.polyrhythmName);
+    console.log("Vars: ", program.vars);
     console.log(program.description);
     if (opts["debug"] || opts["debugSuccess"]) {
       if (analysis?.preHistory.length) {
