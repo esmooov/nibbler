@@ -109,8 +109,10 @@ export const runNibblers = (
     const nextNA = toInt(nextNibbleA);
     const nextNB = toInt(nextNibbleB);
 
-    const carryA = NA + (updateA.add || 0) > 15 ? 1 : 0;
-    const carryB = NB + (updateB.add || 0) > 15 ? 1 : 0;
+    const addA = NA + (updateA.add || 0);
+    const addB = NB + (updateB.add || 0);
+    const carryA = addA > 15 && addA < 32 ? 1 : 0;
+    const carryB = addB > 15 && addB < 32 ? 1 : 0;
 
     const nextAux = program.updateAux
       ? program.updateAux({

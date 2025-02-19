@@ -203,6 +203,20 @@ export const processTestSet = (rawTest: string) => {
       "1011111111",
     ];
 
+  if (rawTest === "5ons")
+    return [
+      "1011101",
+      "10110101",
+      "101101010",
+      "1010101010",
+      "10010101010",
+      "100101010010",
+      "1001010010010",
+      "10010100100100",
+      "100100100100100",
+      "1000100100100100",
+    ];
+
   if (rawTest === "touissant")
     return ["son", "rumba", "bossa", "soukous", "shiko", "gahu"];
 

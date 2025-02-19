@@ -13,8 +13,10 @@ export const meta = (
   matchThreshold: number = 1,
   strictSetMatch: boolean = false
 ) => {
-  const tests = Object.keys(analyses);
+  const rawTests = Object.keys(analyses);
+  const tests = sortBy(rawTests, (t) => analyses[t].length);
   const totalTests = tests.length;
+
   const counts = tests.reduce((oldCounts, test, i) => {
     console.log("Match test: ", test, ". Analyses: ", analyses[test].length);
     if (i > 0 && matchThreshold === totalTests - 1) {
