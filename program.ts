@@ -87,6 +87,7 @@ export const mapBits = (
   baseAddend: number = 0,
   opts: {
     useOwnBits?: boolean;
+    addWithBTMX?: boolean;
   } = {}
 ): NibbleTransformer<Nibble> => {
   const fn = (ownNibble, otherNibble) => {
@@ -112,6 +113,7 @@ export const mapBits = (
     } else {
       addend += map["-8"] || 0;
     }
+    addend = opts.addWithBTMX ? addend % 16 : addend;
     const newNibble = addBits(addend, ownNibble);
     return {
       value: newNibble,

@@ -100,18 +100,23 @@ console.log(tests);
 // );
 fuzz2(
   {
-    mapA: [{ "1": 4, "2": 0, "4": 0, "8": 8 }],
-    mapB: [{ "1": 0, "2": 4, "4": 8, "8": 0 }],
-    a: range(5, 5),
-    b: range(0, 15),
+    mapA: [{ "1": 0, "2": 0, "4": 8, "-8": 4 }],
+    mapB: [{ "2": 8, "4": 0, "8": 0, "-1": 2 }],
+    a: [3, 9, 15],
+    b: [12],
     test: tests,
   },
   (vars, totalRuns) => {
     const { a, b, mapA, mapB, test } = vars;
-    const program = makeProgram(mapBits(mapA, a), mapBits(mapB, b), vars, {
-      auxTransformer: ({ carryA }) => carryA,
-      auxPostProcess: gateToTrigger,
-    });
+    const program = makeProgram(
+      mapBits(mapA, a, { addWithBTMX: true }),
+      mapBits(mapB, b),
+      vars,
+      {
+        auxTransformer: ({ carryA }) => carryA,
+        auxPostProcess: gateToTrigger,
+      }
+    );
     execute(program, test, totalRuns);
   }
 );
