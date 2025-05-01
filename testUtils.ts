@@ -86,6 +86,7 @@ export const twoMasks: Array<Nibble> = [
   [0, 1, 0, 1],
 ];
 export const oneMasks: Array<Nibble> = [
+  [0, 0, 0, 0],
   [1, 0, 0, 0],
   [0, 1, 0, 0],
   [0, 0, 1, 0],

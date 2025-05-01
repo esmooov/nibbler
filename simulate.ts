@@ -52,7 +52,7 @@ export type BitUpdate = {
   description: string;
 };
 
-type Entry = {
+export type Entry = {
   nibbleA: Nibble;
   nibbleB: Nibble;
   NA: number;

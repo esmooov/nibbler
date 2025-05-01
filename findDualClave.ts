@@ -100,23 +100,14 @@ console.log(tests);
 // );
 fuzz2(
   {
-    mapA: [{ "1": 0, "2": 0, "4": 8, "-8": 4 }],
-    mapB: [{ "2": 8, "4": 0, "8": 0, "-1": 2 }],
-    a: [3, 9, 15],
-    b: [12],
+    a: range(1, 15),
+    b: range(1, 15),
+    mapA: masksToBitmap(oneMasks.concat(twoMasks), false),
     test: tests,
   },
   (vars, totalRuns) => {
-    const { a, b, mapA, mapB, test } = vars;
-    const program = makeProgram(
-      mapBits(mapA, a, { addWithBTMX: true }),
-      mapBits(mapB, b),
-      vars,
-      {
-        auxTransformer: ({ carryA }) => carryA,
-        auxPostProcess: gateToTrigger,
-      }
-    );
+    const { a, b, mapA, test } = vars;
+    const program = makeProgram(mapBits(mapA, a), constant(add(b)), vars);
     execute(program, test, totalRuns);
   }
 );

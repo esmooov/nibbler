@@ -1,7 +1,7 @@
 import { Table } from "console-table-printer";
 import { flatten, pickBy, zipWith } from "lodash";
-import { Bit, entriesAreEqual, State, History } from "./simulate";
-import { Program } from "./program";
+import { Bit, entriesAreEqual, State, History, Entry } from "./simulate";
+import { gateToTrigger, Program } from "./program";
 import { Count } from "./meta";
 const terminalOverwrite = require("terminal-overwrite");
 
@@ -20,19 +20,108 @@ const soukous = "1001001000110000";
 const bossa = "1001001000100100";
 const gahu = "1001001000100010";
 const SRGenerator = "1101010111010101";
-const bemba = "100101010010";
 const columbia = "101001010100";
+const bemba = "100101010010";
 const aka = "100101001010";
 const fume = "101010010100";
 const ewe = "100101010100";
 
-export type Test = {
-  bits: string;
-  testName?: string;
+const leftRightSonClave = (entries: Array<Entry>) => {
+  const { carriesA, carriesB } = decomposeEntries(entries);
+  const leftHand = "1000001000101000".split("");
+  const rightHand = "0001000000000000".split("");
+  const testPattern = zipWith(leftHand, rightHand, (a, b) => `${a}${b}`).join(
+    ","
+  );
+  return !!zipWith(
+    gateToTrigger(carriesA),
+    gateToTrigger(carriesB),
+    (a, b) => `${a}${b}`
+  )
+    .join(",")
+    .match(testPattern);
+};
+
+const leftRightRumbaClave = (entries: Array<Entry>) => {
+  const { carriesA, carriesB } = decomposeEntries(entries);
+  const leftHand = "1000000000101000".split("");
+  const rightHand = "0001000100000000".split("");
+  const testPattern = zipWith(leftHand, rightHand, (a, b) => `${a}${b}`).join(
+    ","
+  );
+  return !!zipWith(
+    gateToTrigger(carriesA),
+    gateToTrigger(carriesB),
+    (a, b) => `${a}${b}`
+  )
+    .join(",")
+    .match(testPattern);
+};
+
+const leftRightSonSeed = (entries: Array<Entry>) => {
+  const { carriesA, carriesB } = decomposeEntries(entries);
+  const leftHand = "1001001000101000".split("");
+  const rightHand = "0010100010010010".split("");
+  const testPattern = zipWith(leftHand, rightHand, (a, b) => `${a}${b}`).join(
+    ","
+  );
+  return !!zipWith(
+    gateToTrigger(carriesA),
+    gateToTrigger(carriesB),
+    (a, b) => `${a}${b}`
+  )
+    .join(",")
+    .match(testPattern);
+};
+
+export type Test =
+  | {
+      bits: string;
+      testName?: string;
+      length?: number;
+    }
+  | {
+      fn: (bits: Array<Bit>) => boolean;
+      testName?: string;
+      length?: number;
+    }
+  | {
+      totalFn: (entries: Array<Entry>) => boolean;
+      testName?: string;
+      length?: number;
+    };
+
+type Decomp = {
+  carriesA: Array<Bit>;
+  carriesB: Array<Bit>;
+  aOnes: Array<Bit>;
+  aTwos: Array<Bit>;
+  aFours: Array<Bit>;
+  aEights: Array<Bit>;
+  aux: Array<Bit>;
+};
+export const decomposeEntries = (entries: Array<Entry>): Decomp => {
+  return {
+    carriesA: entries.map((entry) => entry.carryA),
+    carriesB: entries.map((entry) => entry.carryB),
+    aOnes: entries.map((entry) => entry.nibbleA[0]),
+    aTwos: entries.map((entry) => entry.nibbleA[1]),
+    aFours: entries.map((entry) => entry.nibbleA[2]),
+    aEights: entries.map((entry) => entry.nibbleA[3]),
+    aux: entries.map((entry) => (entry.aux || 0) as Bit),
+  };
 };
 
 const evaluateTest = (test: Test, bits: Array<Bit>): boolean => {
-  return !!bits.join("").match(test.bits);
+  if ("bits" in test && test.bits) {
+    return !!bits.join("").match(test.bits);
+  }
+
+  if ("fn" in test && test.fn) {
+    return test.fn(bits);
+  }
+
+  return false;
 };
 
 export type Vars = Record<string, number | Record<string, number>>;
@@ -44,16 +133,17 @@ export type Analysis = {
   orcarries: Array<Bit>;
   inAny: boolean;
   testResults: {
-    inCarriesA: boolean;
-    inCarriesB: boolean;
-    inANDCarries: boolean;
-    inORCarries: boolean;
-    inXORCarries: boolean;
-    inAux: boolean;
-    inAOnes: boolean;
-    inATwos: boolean;
-    inAFours: boolean;
-    inAEights: boolean;
+    inCarriesA?: boolean;
+    inCarriesB?: boolean;
+    inANDCarries?: boolean;
+    inORCarries?: boolean;
+    inXORCarries?: boolean;
+    inAux?: boolean;
+    inAOnes?: boolean;
+    inATwos?: boolean;
+    inAFours?: boolean;
+    inAEights?: boolean;
+    inTotal?: boolean;
   };
   preHistory: History;
   mainHistory: History;
@@ -77,61 +167,59 @@ export const analyze = (
   const preHistory = isLooping ? history.slice(0, firstMatchedIdx) : history;
   const mainHistory = isLooping ? history.slice(firstMatchedIdx, -1) : [];
   const loopLength = mainHistory.length;
-  const loopMatchesStrictLength = test.bits.length % loopLength === 0;
+  const loopMatchesStrictLength = test.length
+    ? test.length % loopLength === 0
+    : true;
   const reps = args["strictOrder"] ? 1 : 10;
-  const testHistory = flatten(Array(reps).fill(mainHistory));
-  const carriesA = testHistory.map((entry) => entry.carryA);
-  const carriesB = testHistory.map((entry) => entry.carryB);
-  const inCarriesA = evaluateTest(test, carriesA);
-  const inCarriesB = evaluateTest(test, carriesB) && !args["skipCarriesB"];
+  const testHistory: Array<Entry> = flatten(Array(reps).fill(mainHistory));
+  let inAny;
+  let testResults;
+  let carries: any = {};
 
-  const inAOnes = evaluateTest(
-    test,
-    testHistory.map((entry) => entry.nibbleA[0])
-  );
-  const inATwos = evaluateTest(
-    test,
-    testHistory.map((entry) => entry.nibbleA[1])
-  );
-  const inAFours = evaluateTest(
-    test,
-    testHistory.map((entry) => entry.nibbleA[2])
-  );
-  const inAEights = evaluateTest(
-    test,
-    testHistory.map((entry) => entry.nibbleA[3])
-  );
+  if ("totalFn" in test) {
+    const result = test.totalFn(testHistory);
+    inAny = result;
+    testResults = {
+      inTotal: inAny,
+    };
+  } else {
+    const { carriesA, carriesB, aOnes, aTwos, aFours, aEights, aux } =
+      decomposeEntries(testHistory);
+    const inCarriesA = evaluateTest(test, carriesA);
+    const inCarriesB = evaluateTest(test, carriesB) && !args["skipCarriesB"];
+    const inAOnes = evaluateTest(test, aOnes);
+    const inATwos = evaluateTest(test, aTwos);
+    const inAFours = evaluateTest(test, aFours);
+    const inAEights = evaluateTest(test, aEights);
+    const auxValues = program.auxPostProcess(aux);
+    const inAux = evaluateTest(test, auxValues);
 
-  const auxValuesRaw = testHistory.map((entry) => (entry.aux || 0) as Bit);
-  const auxValues = program.auxPostProcess(auxValuesRaw);
-  const inAux = evaluateTest(test, auxValues);
+    const xorcarries = zipWith(carriesA, carriesB, (a, b) => (a ^ b) as Bit);
+    const inXORCarries = evaluateTest(test, xorcarries);
+    const orcarries = zipWith(carriesA, carriesB, (a, b) => (a | b) as Bit);
+    const inORCarries = evaluateTest(test, orcarries);
+    const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
+    const inANDCarries = evaluateTest(test, andcarries);
 
-  const xorcarries = zipWith(carriesA, carriesB, (a, b) => (a ^ b) as Bit);
-  const inXORCarries = evaluateTest(test, xorcarries);
-  const orcarries = zipWith(carriesA, carriesB, (a, b) => (a | b) as Bit);
-  const inORCarries = evaluateTest(test, orcarries);
-  const andcarries = zipWith(carriesA, carriesB, (a, b) => (a & b) as Bit);
-  const inANDCarries = evaluateTest(test, andcarries);
-
-  const inA = inCarriesA || inAOnes || inATwos || inAFours || inAEights;
-
-  let inAny = args["limitToAux"]
-    ? inAux
-    : args["limitToA"]
-    ? inA
-    : args["limitToCarriesA"]
-    ? inCarriesA
-    : args["limitToCarries"]
-    ? inCarriesA || inCarriesB
-    : inA || inCarriesB || inXORCarries || inORCarries || inANDCarries || inAux;
-
-  return {
-    testName: test.testName,
-    andcarries,
-    xorcarries,
-    orcarries,
-    inAny,
-    testResults: {
+    const inA = inCarriesA || inAOnes || inATwos || inAFours || inAEights;
+    const inMainA = inCarriesA || inAux;
+    inAny = args["limitToMain"]
+      ? inMainA
+      : args["limitToAux"]
+      ? inAux
+      : args["limitToA"]
+      ? inA
+      : args["limitToCarriesA"]
+      ? inCarriesA
+      : args["limitToCarries"]
+      ? inCarriesA || inCarriesB
+      : inA ||
+        inCarriesB ||
+        inXORCarries ||
+        inORCarries ||
+        inANDCarries ||
+        inAux;
+    testResults = {
       inCarriesA,
       inCarriesB,
       inANDCarries,
@@ -142,7 +230,21 @@ export const analyze = (
       inATwos,
       inAFours,
       inAEights,
-    },
+    };
+    carries = {
+      andcarries,
+      xorcarries,
+      orcarries,
+    };
+  }
+
+  return {
+    andcarries: carries.andcarries,
+    xorcarries: carries.xorcarries,
+    orcarries: carries.orcarries,
+    testName: test.testName,
+    inAny,
+    testResults,
     preHistory,
     mainHistory,
     loopLength,
@@ -217,56 +319,145 @@ export const processTestSet = (rawTest: string) => {
       "1000100100100100",
     ];
 
+  if (rawTest === "mod7")
+    return ["0000001", "0001001", "0010101", "0101011", "0110111", "0111111"];
+
+  if (rawTest === "mod8")
+    return [
+      "00000001",
+      "00010001",
+      "00100101",
+      "01010101",
+      "01011011",
+      "01110111",
+      "01111111",
+    ];
+
+  if (rawTest === "mod9")
+    return [
+      "000000001",
+      "000010001",
+      "001001001",
+      "001010101",
+      "010101011",
+      "011011011",
+      "011101111",
+      "011111111",
+    ];
+
   if (rawTest === "touissant")
     return ["son", "rumba", "bossa", "soukous", "shiko", "gahu"];
 
-  if (rawTest === "touissant12") return ["aka", "fume"];
+  if (rawTest === "touissant12") return ["aka", "fume", "bemba", "ewe"];
 
   if (rawTest === "amenSnares")
     return ["0000100101001001", "0000100101000010", "0100100101000010"];
 
   if (rawTest === "aksak")
     return ["10100", "1010100", "101010100", "10101010100"];
+
+  if (rawTest === "lengths")
+    return ["shortPeriod", "mediumPeriod", "longPeriod", "microPeriod"];
+};
+
+const stringToTest = (testName: string, bits: string): Test => {
+  return {
+    testName,
+    bits,
+    length: bits.length,
+  };
 };
 
 export const processTest = (rawTest: string): Test => {
   switch (rawTest) {
     case "sonClave":
-      return { testName: "son clave", bits: sonClave };
+      return stringToTest("son clave", sonClave);
     case "son":
-      return { testName: "son clave", bits: sonClave };
+      return stringToTest("son clave", sonClave);
     case "rumbaClave":
-      return { testName: "rumba clave", bits: rumbaClave };
+      return stringToTest("rumba clave", rumbaClave);
     case "rumba":
-      return { testName: "rumba clave", bits: rumbaClave };
+      return stringToTest("rumba clave", rumbaClave);
     case "shiko":
-      return { testName: "shiko", bits: shiko };
+      return stringToTest("shiko", shiko);
     case "soukous":
-      return { testName: "soukous", bits: soukous };
+      return stringToTest("soukus", soukous);
     case "bossa":
-      return { testName: "bossa nova", bits: bossa };
+      return stringToTest("bossa nova", bossa);
     case "gahu":
-      return { testName: "gahu", bits: gahu };
+      return stringToTest("gahu", gahu);
     case "soli":
-      return { testName: "soli", bits: soli };
+      return stringToTest("soli", soli);
     case "tambu":
-      return { testName: "tambu", bits: tambu };
+      return stringToTest("tambu", tambu);
     case "sorsonet":
-      return { testName: "sorsonet", bits: sorsonet };
+      return stringToTest("sorsonet", sorsonet);
     case "srgen":
-      return { testName: "srgen", bits: SRGenerator };
+      return stringToTest("srgen", SRGenerator);
     case "bemba":
-      return { testName: "bemba", bits: bemba };
+      return stringToTest("bemba", bemba);
     case "columbia":
-      return { testName: "columbia", bits: columbia };
+      return stringToTest("columbia", columbia);
     case "aka":
-      return { testName: "aka", bits: aka };
+      return stringToTest("aka", aka);
     case "fume":
-      return { testName: "fume", bits: fume };
+      return stringToTest("fume", fume);
     case "ewe":
-      return { testName: "ewe", bits: ewe };
+      return stringToTest("ewe", ewe);
+    case "7mod12":
+      return {
+        length: 12,
+        totalFn: (entries: Array<Entry>) => {
+          const nums = entries.map((entry) => entry.NA).join(",");
+          const test = "0,7,2,9,4,11,6,1,8,3,10,5";
+          return !!nums.match(test);
+        },
+      };
+    case "7mod10":
+      return {
+        length: 10,
+        totalFn: (entries: Array<Entry>) => {
+          const nums = entries.map((entry) => entry.NA).join(",");
+          const test = "0,7,4,1,8,5,2,9,6,3";
+          return !!nums.match(test);
+        },
+      };
+    case "leftRightSonClave":
+      return {
+        length: 16,
+        totalFn: leftRightSonClave,
+      };
+    case "leftRightRumbaClave":
+      return {
+        length: 16,
+        totalFn: leftRightRumbaClave,
+      };
+    case "longPeriod":
+      return {
+        totalFn: (entries: Array<Entry>) => {
+          return entries.length >= 250;
+        },
+      };
+    case "mediumPeriod":
+      return {
+        totalFn: (entries: Array<Entry>) => {
+          return entries.length > 15 && entries.length < 32;
+        },
+      };
+    case "shortPeriod":
+      return {
+        totalFn: (entries: Array<Entry>) => {
+          return entries.length > 4 && entries.length <= 30;
+        },
+      };
+    case "microPeriod":
+      return {
+        totalFn: (entries: Array<Entry>) => {
+          return entries.length <= 4 && entries.length > 0;
+        },
+      };
     default:
-      return { bits: rawTest };
+      return { bits: rawTest, length: rawTest.length };
   }
 };
 
